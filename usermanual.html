@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ambivare Solutions - User Manual</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --text-color: #333;
+            --bg-color: #f9f9f9;
+            --card-bg: #ffffff;
+            --border-color: #e0e0e0;
+            --header-bg: #1e40af;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        /* --- Header --- */
+        header {
+            background-color: var(--header-bg);
+            color: white;
+            padding: 25px 20px;
+            text-align: center;
+            border-bottom: 4px solid var(--primary-color);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+
+        header p {
+            margin: 5px 0 0;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* --- Main Content --- */
+        main {
+            max-width: 650px;
+            margin: 20px auto;
+            padding: 0 15px;
+        }
+
+        .welcome {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        /* --- Collapsible Sections (for mobile-friendly manual) --- */
+        details {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden; /* For clean rounded corners */
+        }
+
+        summary {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* Custom "arrow" */
+        summary::after {
+            content: '+';
+            font-size: 1.5rem;
+            font-weight: 300;
+            transition: transform 0.2s;
+        }
+
+        details[open] summary::after {
+            content: '−'; /* Use a minus sign when open */
+            transform: rotate(180deg);
+        }
+        
+        details[open] summary {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .details-content {
+            padding: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        details[open] .details-content {
+            border-top: none; /* Handled by summary border */
+        }
+
+        .details-content h3 {
+            margin-top: 0;
+            color: var(--header-bg);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 5px;
+        }
+
+        .details-content p {
+            margin-bottom: 15px;
+        }
+
+        .details-content ul, .details-content ol {
+            padding-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .details-content li {
+            margin-bottom: 10px;
+        }
+
+        /* --- Utility Classes --- */
+        .note {
+            background-color: #fffbe6;
+            border: 1px solid #fde68a;
+            color: #78350f;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+
+        .note strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .code-snippet {
+            background-color: #f4f4f4;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        /* --- Footer --- */
+        footer {
+            text-align: center;
+            padding: 30px 20px;
+            font-size: 0.85rem;
+            color: #888;
+            margin-top: 30px;
+        }
+        
+        .support-section {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .support-section h3 {
+            margin-top: 0;
+        }
+        
+        .support-section ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .support-section li {
+            font-size: 1.1rem;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Ambivare Solutions</h1>
+        <p>Mobile App User Manual</p>
+    </header>
+
+    <main>
+        <div class="welcome">
+            <h2>Welcome to the Team</h2>
+            <p>This guide explains how to use the Ambivare Solutions management app on your mobile device. Use the sections below to learn about each feature.</p>
+        </div>
+
+        <details>
+            <summary>🚀 Getting Started</summary>
+            <div class="details-content">
+                <h3>Logging In & Out</h3>
+                <p>You must log in to use the system. Your username and password will be provided by your administrator.</p>
+                <ul>
+                    <li><strong>Login:</strong> Open the app and enter your <strong>Username</strong> and <strong>Password</strong> on the login screen. Tap "Sign In".</li>
+                    <li><strong>Logout:</strong> From the main app screen, tap the <strong>Logout</strong> button in the top-right corner.</li>
+                </ul>
+                
+                <h3>Main Screen</h3>
+                <p>After logging in, you'll see the main screen. The top bar shows your name and role. The navigation tabs (e.g., Dashboard, Warehouse, Projects) are at the top of the content area. Tap any tab to switch to that module.</p>
+                
+                <div class="note">
+                    <strong>Offline Mode:</strong> If you see an "OFFLINE MODE" badge, your device is not connected to the internet. Your changes will be saved locally and sync automatically when you go back online.
+                </div>
+            </div>
+        </details>
+        
+        <details>
+            <summary>🏠 The Dashboard</summary>
+            <div class="details-content">
+                <p>The Dashboard is the first screen you see. It gives you a quick overview of the entire business.</p>
+                <ul>
+                    <li><strong>Stats Cards:</strong> These show key numbers like Total Items, Active Projects, and Maintenance Due.</li>
+                    <li><strong>Low Stock Alert:</strong> A warning will appear at the top if any items in the inventory are running low.</li>
+                    <li><strong>Charts:</strong> Visual charts show you the breakdown of inventory by location (Warehouse, Office, Van) and the overall stock levels.</li>
+                </ul>
+            </div>
+        </details>
+
+        <details>
+            <summary>📦 Inventory Management</summary>
+            <div class="details-content">
+                <p>The <strong>Warehouse</strong>, <strong>Office</strong>, and <strong>Service Van</strong> tabs all work the same way. They help you track all company parts and supplies.</p>
+
+                <h3>Key Inventory Tasks</h3>
+                <ul>
+                    <li><strong>Add a New Item:</strong> Tap the <code class="code-snippet">+ Add Item</code> button. Fill out the form with the item's name, category, quantity, etc.</li>
+                    <li><strong>Add More Stock:</strong> Find the item in the list and tap the <code class="code-snippet">+ Add</code> button. Enter the quantity you are adding to the existing stock.</li>
+                    <li><strong>Use Stock for a Project:</strong> Tap the <code class="code-snippet">Use</code> button. Enter the quantity you are taking and select the project this stock is for. This automatically updates the project's records.</li>
+                </ul>
+                
+                <h3>Finding Items</h3>
+                <p>Use the <strong>Search</strong> bar and <strong>Filter</strong> dropdowns at the top of the list to quickly find the item you need by name, category, or stock status (e.g., "Low Stock").</p>
+                
+                <div class="note">
+                    <strong>📷 Barcode Scanning (Mobile Only)</strong>
+                    <p>Tap the <strong>Scan Barcode</strong> button to use your phone's camera.</p>
+                    <ul>
+                        <li>If the barcode matches an item, it will automatically open that item's details.</li>
+                        <li>If the barcode is not found, it will open the "Add Item" form and pre-fill the barcode number for you.</li>
+                    </ul>
+                </div>
+            </div>
+        </details>
+
+        <details>
+            <summary>🏗️ Project Management</summary>
+            <div class="details-content">
+                <p>The <strong>Projects</strong> tab tracks all client installations and modernizations from start to finish.</p>
+                <ul>
+                    <li><strong>Create a Project:</strong> Tap <code class="code-snippet">+ Create Project</code> to open the form. You must fill in the Project Name, Code, Client, and elevator details.</li>
+                    <li><strong>View Projects:</strong> The main list shows all projects. You can see their status (Active, Completed) and progress percentage.</li>
+                    <li><strong>Edit a Project:</strong> Tap the "Edit" button to update a project's status, progress, or other details.</li>
+                </ul>
+                <div class="note">
+                    <strong>On Hold Projects:</strong> If a project is stalled (e.g., waiting for client payment, site not ready), edit the project, change its <strong>Status</strong> to "On Hold," and fill in the <strong>Hold Information</strong> section. This is crucial for reports.
+                </div>
+            </div>
+        </details>
+
+        <details>
+            <summary>🔧 Maintenance (Technicians)</summary>
+            <div class="details-content">
+                <p>This module tracks all service calls, complaints, and scheduled maintenance for client elevators.</p>
+
+                <h3>Scheduling a Service Call</h3>
+                <p>Tap the <code class="code-snippet">+ Schedule Maintenance</code> button.</p>
+                <ol>
+                    <li>Select the <strong>Project</strong> and the specific <strong>Elevator(s)</strong>.</li>
+                    <li>Fill in the <strong>Issue Description</strong>.</li>
+                    <li>Enter the <strong>Complaint Person Details</strong> (name, phone, address). This is required.</li>
+                    <li>Set a <strong>Priority</strong> (High, Medium, Low) and <strong>Assign</strong> it to a technician.</li>
+                    <li>Set the <strong>Due Date</strong>.</li>
+                </ol>
+
+                <h3>The Service Workflow (Important!)</h3>
+                <p>When you edit a maintenance task, you must update its <strong>Status</strong>. This is how the office tracks your work.</p>
+                <ul>
+                    <li><strong>In Progress:</strong> When you arrive at the site, change the status to "In Progress". The app will ask for the <strong>Arrival Signature</strong> from the building representative to confirm you are there.</li>
+                    <li><strong>Completed:</strong> When the job is finished, change the status to "Completed". You must fill in the <strong>Work Performed</strong> details and get a <strong>Completion Signature</strong> from the client.</li>
+                    <li><strong>On Hold:</strong> If you cannot complete the job (e.g., parts needed), set the status to "On Hold" and fill in the reason.</li>
+                </ul>
+                <div class="note">
+                    <strong>Exporting Reports:</strong> After a job is "Completed" and signed, you can tap the "Edit" button and then the <strong>Export PDF</strong> button to generate a signed service report for the client.
+                </div>
+            </div>
+        </details>
+        
+        <details>
+            <summary>🎯 Sales (Lead Management)</summary>
+            <div class="details-content">
+                <p>The <strong>Sales</strong> tab is for the sales team to manage new leads and potential customers.</p>
+                
+                <h3>Adding & Managing Leads</h3>
+                <ul>
+                    <li><strong>Add a Lead:</strong> Tap <code class="code-snippet">+ Add Lead</code>. Fill in all the details you have (Contact, Company, Project Requirements, Budget, etc.).</li>
+                    <li><strong>Update a Lead:</strong> Tap "Edit" on any lead to update its information, change its status (e.g., "New" to "Contacted"), or adjust its priority (Hot, Warm, Cold).</li>
+                </ul>
+                
+                <h3>Logging Activities (Crucial!)</h3>
+                <p>Tracking your interactions is the most important part of sales.</p>
+                <ol>
+                    <li>Tap the <strong>View</strong> button on a lead.</li>
+                    <li>In the details pop-up, tap the <code class="code-snippet">+ Add Activity</code> button.</li>
+                    <li>Select the <strong>Activity Type</strong> (Call, Email, Meeting, Site Visit).</li>
+                    <li>Fill in what was discussed and what the <strong>Next Step</strong> is (e.g., "Follow-up Call" on a specific date).</li>
+                </ol>
+                <p>This creates a complete timeline for each lead so you never forget to follow up.</p>
+            </div>
+        </details>
+        
+        <details>
+            <summary>📄 Billing & Invoicing</summary>
+            <div class="details-content">
+                <p>The <strong>Billing</strong> tab allows you to create professional invoices and quotations (estimates).</p>
+                <ul>
+                    <li><strong>Create Invoice/Quotation:</strong> Tap <code class="code-snippet">+ Create Invoice</code> or <code class="code-snippet">+ Create Quotation</code>.</li>
+                    <li><strong>Fill Details:</strong> Add the client's information, then add line items (description, quantity, rate). The app calculates the subtotal, GST, and total amount for you.</li>
+                    <li><strong>Payment Terms:</strong> You can set different payment terms:
+                        <ul>
+                            <li><strong>Advance + Balance:</strong> Lets you record an advance payment and shows the remaining balance due.</li>
+                            <li><strong>Multiple Installments:</strong> Lets you set up a payment schedule with specific dates and amounts.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Generate PDF:</strong> Once an invoice is saved, you can tap the <strong>PDF</strong> button in the list to download a professional PDF to send to the client.</li>
+                </ul>
+            </div>
+        </details>
+        
+        <details>
+            <summary>⚙️ Admin Functions</summary>
+            <div class="details-content">
+                <p>These tabs are typically for administrators only.</p>
+                <ul>
+                    <li><strong>Activities:</strong> Shows a log of every single action taken in the app (e.g., "User X added item Y").</li>
+                    <li><strong>Users:</strong> Allows you to create new user accounts, edit existing ones, change passwords, and set user roles (e.g., Admin, Technician, Sales).</li>
+                </ul>
+            </div>
+        </details>
+        
+        <div class="support-section">
+            <h3>Need Help?</h3>
+            <p>If you have trouble with the app or have any questions, please contact support.</p>
+            <ul>
+                <li><strong>Phone:</strong> 9373015503</li>
+                <li><strong>Email:</strong> operations@ambivare.com</li>
+            </ul>
+        </div>
+
+    </main>
+
+    <footer>
+        <p>&copy; Ambivare Solutions</p>
+    </footer>
+
+</body>
+</html>
