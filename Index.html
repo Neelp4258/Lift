@@ -1253,12 +1253,120 @@
             border-bottom: 2px solid var(--primary);
         }
 
+        /* Toast Notification System */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 400px;
+        }
+
+        .toast {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 16px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            min-width: 300px;
+            animation: slideIn 0.3s ease-out;
+            border-left: 4px solid var(--primary);
+        }
+
+        .toast.success { border-left-color: var(--success); }
+        .toast.error { border-left-color: var(--danger); }
+        .toast.warning { border-left-color: var(--warning); }
+        .toast.info { border-left-color: var(--primary); }
+
+        .toast-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .toast-message {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .toast-close:hover {
+            color: var(--text-primary);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .toast.removing {
+            animation: slideOut 0.3s ease-in forwards;
+        }
+
+        @media (max-width: 768px) {
+            .toast-container {
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+            .toast {
+                min-width: auto;
+            }
+        }
+
     </style>
     
     <!-- SMTP.js - Send emails directly from JavaScript -->
     <script src="https://smtpjs.com/v3/smtp.js"></script>
 </head>
 <body>
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
     <div class="login-screen" id="loginScreen">
         <div class="login-card">
             <div class="logo">
@@ -6002,6 +6110,224 @@
             "service-van": ["Emergency Parts", "Tools", "Testing Equipment", "Safety Gear", "Sensors", "Controllers", "Cables", "Car Parts", "Door Parts", "Other"]
         };
 
+        // ============================================
+        // TOAST NOTIFICATION SYSTEM
+        // ============================================
+
+        /**
+         * Show a toast notification
+         * @param {string} type - Type of toast: 'success', 'error', 'warning', 'info'
+         * @param {string} message - The message to display
+         * @param {string} title - Optional title for the toast
+         * @param {number} duration - How long to show the toast in ms (default: 4000)
+         */
+        window.showToast = (type, message, title = null, duration = 4000) => {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+
+            const icons = {
+                success: '✓',
+                error: '✕',
+                warning: '⚠',
+                info: 'ℹ'
+            };
+
+            const titles = {
+                success: title || 'Success',
+                error: title || 'Error',
+                warning: title || 'Warning',
+                info: title || 'Information'
+            };
+
+            const toastId = 'toast_' + Date.now() + Math.random();
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.id = toastId;
+            toast.innerHTML = `
+                <div class="toast-icon">${icons[type] || icons.info}</div>
+                <div class="toast-content">
+                    <div class="toast-title">${titles[type]}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close" onclick="closeToast('${toastId}')">&times;</button>
+            `;
+
+            container.appendChild(toast);
+
+            // Auto remove after duration
+            if (duration > 0) {
+                setTimeout(() => {
+                    closeToast(toastId);
+                }, duration);
+            }
+        };
+
+        /**
+         * Close a specific toast
+         */
+        window.closeToast = (toastId) => {
+            const toast = document.getElementById(toastId);
+            if (!toast) return;
+
+            toast.classList.add('removing');
+            setTimeout(() => {
+                toast.remove();
+            }, 300); // Match animation duration
+        };
+
+        /**
+         * Wrapper functions for convenience
+         */
+        window.showSuccess = (message, title) => showToast('success', message, title);
+        window.showError = (message, title) => showToast('error', message, title);
+        window.showWarning = (message, title) => showToast('warning', message, title);
+        window.showInfo = (message, title) => showToast('info', message, title);
+
+        // ============================================
+        // END TOAST NOTIFICATION SYSTEM
+        // ============================================
+
+        // ============================================
+        // LOGGING SYSTEM
+        // ============================================
+
+        // Enable/disable logging (set to false in production)
+        const ENABLE_LOGGING = localStorage.getItem('debug_mode') === 'true' || false;
+
+        // Custom logger that respects debug mode
+        window.logger = {
+            log: (...args) => {
+                if (ENABLE_LOGGING) console.log(...args);
+            },
+            info: (...args) => {
+                if (ENABLE_LOGGING) console.info(...args);
+            },
+            warn: (...args) => {
+                console.warn(...args); // Always show warnings
+            },
+            error: (...args) => {
+                console.error(...args); // Always show errors
+            },
+            debug: (...args) => {
+                if (ENABLE_LOGGING) console.log('[DEBUG]', ...args);
+            }
+        };
+
+        // Function to toggle debug mode
+        window.toggleDebugMode = () => {
+            const currentMode = localStorage.getItem('debug_mode') === 'true';
+            const newMode = !currentMode;
+            localStorage.setItem('debug_mode', newMode.toString());
+            showInfo(`Debug mode ${newMode ? 'enabled' : 'disabled'}. Reload the page for changes to take effect.`);
+            return newMode;
+        };
+
+        // ============================================
+        // END LOGGING SYSTEM
+        // ============================================
+
+        // ============================================
+        // INPUT VALIDATION HELPERS
+        // ============================================
+
+        window.validators = {
+            // Email validation
+            email: (email) => {
+                const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return regex.test(email);
+            },
+
+            // Phone validation (Indian format)
+            phone: (phone) => {
+                const regex = /^[6-9]\d{9}$/;
+                return regex.test(phone.replace(/[^\d]/g, ''));
+            },
+
+            // GST validation (Indian GST format)
+            gst: (gst) => {
+                const regex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+                return regex.test(gst);
+            },
+
+            // PAN validation (Indian PAN format)
+            pan: (pan) => {
+                const regex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+                return regex.test(pan);
+            },
+
+            // IFSC code validation
+            ifsc: (ifsc) => {
+                const regex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+                return regex.test(ifsc);
+            },
+
+            // Required field validation
+            required: (value) => {
+                return value !== null && value !== undefined && value.toString().trim() !== '';
+            },
+
+            // Number validation
+            number: (value, min = null, max = null) => {
+                const num = parseFloat(value);
+                if (isNaN(num)) return false;
+                if (min !== null && num < min) return false;
+                if (max !== null && num > max) return false;
+                return true;
+            },
+
+            // URL validation
+            url: (url) => {
+                try {
+                    new URL(url);
+                    return true;
+                } catch {
+                    return false;
+                }
+            },
+
+            // Date validation (not in future)
+            dateNotFuture: (date) => {
+                const inputDate = new Date(date);
+                const today = new Date();
+                return inputDate <= today;
+            },
+
+            // Length validation
+            length: (value, min = 0, max = Infinity) => {
+                const len = value.toString().length;
+                return len >= min && len <= max;
+            }
+        };
+
+        // Form validation helper
+        window.validateForm = (formId, rules) => {
+            const errors = [];
+            for (const [fieldId, fieldRules] of Object.entries(rules)) {
+                const element = document.getElementById(fieldId);
+                if (!element) continue;
+
+                const value = element.value;
+                const fieldName = fieldRules.name || fieldId;
+
+                for (const rule of fieldRules.rules) {
+                    if (rule.type === 'required' && !validators.required(value)) {
+                        errors.push(`${fieldName} is required`);
+                    } else if (rule.type === 'email' && value && !validators.email(value)) {
+                        errors.push(`${fieldName} must be a valid email`);
+                    } else if (rule.type === 'phone' && value && !validators.phone(value)) {
+                        errors.push(`${fieldName} must be a valid phone number`);
+                    } else if (rule.type === 'number' && value && !validators.number(value, rule.min, rule.max)) {
+                        errors.push(`${fieldName} must be a valid number${rule.min ? ` (min: ${rule.min})` : ''}${rule.max ? ` (max: ${rule.max})` : ''}`);
+                    }
+                }
+            }
+            return errors;
+        };
+
+        // ============================================
+        // END INPUT VALIDATION HELPERS
+        // ============================================
+
         let currentUser = null;
         let inventory = { warehouse: [], office: [], "service-van": [] };
         let projects = [];
@@ -8068,7 +8394,7 @@
                     });
                     loadInvoices();
                 } catch (error) {
-                    alert('Error deleting invoice: ' + error.message);
+                    showError('deleting invoice: ' + error.message);
                 }
             }
         };
@@ -8079,26 +8405,26 @@
                 try {
                     await ensureJsPDF();
                 } catch (e) {
-                    alert('PDF library not loaded. Please refresh the page.');
+                    showWarning('PDF library not loaded. Please refresh the page.');
                     return;
                 }
 
                 const invoice = invoices.find(inv => inv.id === invoiceId);
                 if (!invoice) {
-                    alert('Invoice not found.');
+                    showError('.');
                     return;
                 }
 
                 // Validate invoice has required data
                 if (!invoice.items || invoice.items.length === 0) {
-                    alert('Invoice has no items. Cannot generate PDF.');
+                    showWarning('Invoice has no items. Cannot generate PDF.');
                     return;
                 }
 
                 await generateInvoicePDF(invoice);
             } catch (error) {
                 console.error('Error generating PDF:', error);
-                alert('Error generating PDF: ' + error.message);
+                showError('generating PDF: ' + error.message);
             }
         };
 
@@ -8190,7 +8516,7 @@
                 closeModal('inventoryModal');
                 await loadData();
             } catch (error) {
-                alert('Error saving inventory: ' + error.message);
+                showError('saving inventory: ' + error.message);
             }
         });
 
@@ -8255,7 +8581,7 @@
             const project = projects.find(p => p.id === projectId);
 
             if (quantity > item.quantity) {
-                alert('Not enough stock available!');
+                showError('Not enough stock available!');
                 return;
             }
 
@@ -8319,7 +8645,7 @@
         window.editProject = (id) => {
             const project = projects.find(p => p.id === id);
             if (!project) {
-                alert('Project not found');
+                showError('');
                 return;
             }
             
@@ -8531,19 +8857,19 @@
             
             // Validate contacts
             if (projectContacts.length === 0 || !projectContacts[0].name || !projectContacts[0].phone) {
-                alert('⚠️ Please add at least one client contact with name and phone number');
+                showWarning(' Please add at least one client contact with name and phone number');
                 return;
             }
             
             // Validate lifts
             if (projectLifts.length === 0) {
-                alert('⚠️ Please configure at least one lift');
+                showWarning(' Please configure at least one lift');
                 return;
             }
             
             // Validate wings
             if (currentWings.length === 0) {
-                alert('⚠️ Please configure at least one wing/block with elevators');
+                showWarning(' Please configure at least one wing/block with elevators');
                 return;
             }
             
@@ -8638,7 +8964,7 @@
 
             closeModal('projectModal');
             await loadData();
-            alert(`✅ Project ${projectId ? 'updated' : 'created'} successfully!\n\n📍 Lifts configured: ${projectData.totalLifts}\n👥 Contacts added: ${projectContacts.length}`);
+            showSuccess(` Project ${projectId ? 'updated' : 'created'} successfully!\n\n📍 Lifts configured: ${projectData.totalLifts}\n👥 Contacts added: ${projectContacts.length}`);
         });
 
         window.deleteProject = async (id) => {
@@ -8925,7 +9251,7 @@
                 const searchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
                 window.open(searchUrl, '_blank');
             } else {
-                alert('⚠️ Please enter either a Google Maps link or project address first');
+                showWarning(' Please enter either a Google Maps link or project address first');
             }
         };
 
@@ -9292,7 +9618,7 @@
             const elevatorSelect = document.getElementById('maintenanceElevator');
             
             if (!elevatorSelect) {
-                alert('Error: Elevator select element not found');
+                showError('');
                 return;
             }
             
@@ -9305,14 +9631,14 @@
             
             // If multiple elevators are selected, create maintenance for each
             if (selectedElevators.length === 0) {
-                alert('Please select at least one elevator');
+                showWarning('select at least one elevator');
                 return;
             }
             
             // Validate RCI type
             const rciType = document.getElementById('rciType')?.value || 'Maintenance';
             if (!rciType) {
-                alert('Please select a record type (Repair, Complaint, or Maintenance)');
+                showWarning('select a record type (Repair, Complaint, or Maintenance)');
                 return;
             }
             
@@ -9437,12 +9763,12 @@
                 const message = maintenanceId ? 
                     'Maintenance updated successfully!' : 
                     `Maintenance scheduled for ${selectedElevators.length} elevator(s) successfully!`;
-                alert(message);
+                showInfo(message);
             } catch (error) {
                 console.error('❌ Error scheduling maintenance:', error);
                 console.error('Error stack:', error.stack);
                 console.error('Error at line:', error.lineNumber || 'unknown');
-                alert('Error scheduling maintenance: ' + error.message + '\n\nCheck console for details.');
+                showError('scheduling maintenance: ' + error.message + '\n\nCheck console for details.');
             }
         });
 
@@ -9450,7 +9776,7 @@
             const maint = maintenance && maintenance.find ? maintenance.find(m => m.id === id) : null;
             
             if (!maint) {
-                alert('Maintenance record not found');
+                showError('');
                 return;
             }
             
@@ -9586,7 +9912,7 @@
         window.completeMultiElevatorMaintenance = async (maintenanceId) => {
             const maint = maintenance.find(m => m.id === maintenanceId);
             if (!maint || !maint.elevatorIds) {
-                alert('Maintenance record not found or not a multi-elevator maintenance.');
+                showError(' or not a multi-elevator maintenance.');
                 return;
             }
 
@@ -9722,7 +10048,7 @@
             const selectedElevators = Array.from(document.querySelectorAll('input[name="completedElevators"]:checked')).map(cb => cb.value);
             
             if (selectedElevators.length === 0) {
-                alert('Please select at least one elevator to complete.');
+                showWarning('select at least one elevator to complete.');
                 return;
             }
 
@@ -9773,11 +10099,11 @@
 
                 closeModal('multiElevatorCompletionModal');
                 await loadData();
-                alert(`Successfully completed maintenance for ${selectedElevators.length} elevator(s): ${selectedElevators.join(', ')}`);
+                showSuccess(`completed maintenance for ${selectedElevators.length} elevator(s): ${selectedElevators.join(', ')}`);
 
             } catch (error) {
                 console.error('Error completing multi-elevator maintenance:', error);
-                alert('Error completing maintenance: ' + error.message);
+                showError('completing maintenance: ' + error.message);
             }
         };
 
@@ -9785,7 +10111,7 @@
         window.generateMultiElevatorReports = async (maintenanceId) => {
             const maint = maintenance.find(m => m.id === maintenanceId);
             if (!maint) {
-                alert('Maintenance record not found.');
+                showError('.');
                 return;
             }
 
@@ -9811,13 +10137,13 @@
                     completionSignature: document.getElementById('multiCompletionSignatureCanvas')?.toDataURL()
                 };
                 await exportMaintenanceReport('', combinedMaint);
-                alert(`Generated combined maintenance report for ${selectedElevators.length} elevators: ${selectedElevators.join(', ')}`);
+                showSuccess(`combined maintenance report for ${selectedElevators.length} elevators: ${selectedElevators.join(', ')}`);
                 return;
             }
 
             // Check for already completed elevators
             if (!maint.completedElevators || maint.completedElevators.length === 0) {
-                alert('No completed elevators found for report generation. Please complete some elevators first or select elevators in the completion modal.');
+                showWarning('No completed elevators found for report generation. Please complete some elevators first or select elevators in the completion modal.');
                 return;
             }
 
@@ -9830,7 +10156,7 @@
                 elevatorIds: null // Remove multi-elevator data for report generation
             };
             await exportMaintenanceReport('', combinedMaint);
-            alert(`Generated combined maintenance report for ${maint.completedElevators.length} completed elevators: ${maint.completedElevators.join(', ')}`);
+            showSuccess(`combined maintenance report for ${maint.completedElevators.length} completed elevators: ${maint.completedElevators.join(', ')}`);
         };
 
         window.deleteMaintenance = async (id) => {
@@ -9924,7 +10250,7 @@
         window.editEmployee = (id) => {
             const employee = employees.find(emp => emp.id === id);
             if (!employee) {
-                alert('Employee not found');
+                showError('');
                 return;
             }
             
@@ -9984,7 +10310,7 @@
         window.deleteEmployee = async (id) => {
             const employee = employees.find(emp => emp.id === id);
             if (!employee) {
-                alert('Employee not found!');
+                showError('!');
                 return;
             }
             
@@ -10012,7 +10338,7 @@
                         }
                     } catch (firebaseError) {
                         console.error('Firebase error during delete:', firebaseError);
-                        alert('Error deleting from Firebase: ' + firebaseError.message + '\n\nPlease check your connection and try again.');
+                        showError('deleting from Firebase: ' + firebaseError.message + '\n\nPlease check your connection and try again.');
                         return; // Don't continue if Firebase delete fails
                     }
                 }
@@ -10035,11 +10361,11 @@
                     populateManagerDropdown();
                     populateAssigneeFilters();
                     
-                    alert('Employee deleted successfully!');
+                    showSuccess('!');
                 }
             } catch (error) {
                 console.error('Error deleting employee:', error);
-                alert('Error deleting employee. Please try again.\n\nError: ' + error.message);
+                showError('deleting employee. Please try again.\n\nError: ' + error.message);
             }
         };
 
@@ -10061,12 +10387,12 @@
             const existingUsername = username && username.length > 0 ? employees.find(emp => emp.username === username && emp.id !== employeeId) : null;
             
             if (existingEmpId) {
-                alert('Employee ID already exists. Please use a different ID.');
+                showWarning('Employee ID already exists. Please use a different ID.');
                 return;
             }
             
             if (existingUsername) {
-                alert(`Username "${username}" already exists. Please use a different username.`);
+                showWarning(`Username "${username}" already exists. Please use a different username.`);
                 return;
             }
 
@@ -10125,7 +10451,7 @@
 
                 // For new employees, password is required
                 if (!employeeId && password.length === 0) {
-                    alert('Password is required for new employees.');
+                    showError('Password is required for new employees.');
                     return;
                 }
 
@@ -10219,7 +10545,7 @@
                 populateManagerDropdown();
                 populateAssigneeFilters();
                 
-                alert(employeeId ? 'Employee updated successfully!' : 'Employee added successfully!');
+                showSuccess(employeeId ? 'Employee updated successfully!' : 'Employee added successfully!');
                 
                 // Wait a moment for Firebase to commit, then reload to sync
                 setTimeout(async () => {
@@ -10234,7 +10560,7 @@
                 }, 1000); // Wait 1 second for Firebase to commit
             } catch (error) {
                 console.error('Error saving employee:', error);
-                alert('Error saving employee: ' + error.message);
+                showError('saving employee: ' + error.message);
             }
         });
 
@@ -10264,7 +10590,7 @@
             if (employeeId) {
                 employee = employees.find(emp => emp.id === employeeId);
                 if (!employee) {
-                    alert('Employee not found');
+                    showError('');
                     return;
                 }
             } else {
@@ -10576,7 +10902,7 @@
 
             } catch (error) {
                 console.error('Error generating individual HR report:', error);
-                alert('Error generating individual HR report: ' + error.message);
+                showError('generating individual HR report: ' + error.message);
             }
         };
 
@@ -10761,7 +11087,7 @@
                 doc.save(`Complete_HR_Report_${new Date().toISOString().split('T')[0]}.pdf`);
             } catch (error) {
                 console.error('Error generating complete HR report:', error);
-                alert('Error generating complete HR report: ' + error.message);
+                showError('generating complete HR report: ' + error.message);
             }
         };
 
@@ -10942,7 +11268,7 @@
                 doc.save(`Payroll_Report_${new Date().toISOString().split('T')[0]}.pdf`);
             } catch (error) {
                 console.error('Error generating payroll report:', error);
-                alert('Error generating payroll report: ' + error.message);
+                showError('generating payroll report: ' + error.message);
             }
         };
 
@@ -11020,7 +11346,7 @@
         window.autoDistributeSalary = () => {
             const grossSalary = parseFloat(document.getElementById('grossSalary').value) || 0;
             if (grossSalary === 0) {
-                alert('Please enter gross salary first!');
+                showWarning('enter gross salary first!');
                 return;
             }
             
@@ -11040,7 +11366,7 @@
             document.getElementById('otherAllowances').value = Math.round(other);
             
             calculateSalaryComponents();
-            alert(`Salary distributed successfully!\n\nBasic: Rs. ${formatNumber(Math.round(basicSalary))}\nHRA: Rs. ${formatNumber(Math.round(hra))}\nTransport: Rs. ${formatNumber(Math.round(transport))}\nMedical: Rs. ${formatNumber(Math.round(medical))}\nOther: Rs. ${formatNumber(Math.round(other))}`);
+            showSuccess(`Salary distributed successfully!\n\nBasic: Rs. ${formatNumber(Math.round(basicSalary))}\nHRA: Rs. ${formatNumber(Math.round(hra))}\nTransport: Rs. ${formatNumber(Math.round(transport))}\nMedical: Rs. ${formatNumber(Math.round(medical))}\nOther: Rs. ${formatNumber(Math.round(other))}`);
         };
 
         window.generateSalarySlip = async () => {
@@ -11051,32 +11377,32 @@
             const presentDays = parseFloat(document.getElementById('presentDaysInput').value);
 
             if (!employeeId) {
-                alert('Please select an employee!');
+                showWarning('select an employee!');
                 return;
             }
             if (!salaryMonth) {
-                alert('Please select a month!');
+                showWarning('select a month!');
                 return;
             }
             if (grossSalary === 0) {
-                alert('Please enter gross salary!');
+                showWarning('enter gross salary!');
                 return;
             }
             if (isNaN(presentDays)) {
-                alert('Please enter present days!');
+                showWarning('enter present days!');
                 return;
             }
 
             const employee = employees.find(emp => emp.id === employeeId);
             if (!employee) {
-                alert('Employee not found!');
+                showError('!');
                 return;
             }
 
             try {
                 // Ensure jsPDF is loaded
                 if (typeof window.jspdf === 'undefined') {
-                    alert('PDF library is loading... Please wait a moment and try again.');
+                    showWarning('PDF library is loading... Please wait a moment and try again.');
                     return;
                 }
 
@@ -11106,7 +11432,7 @@
                 });
             } catch (error) {
                 console.error('Error generating salary slip:', error);
-                alert('Error generating salary slip: ' + error.message);
+                showError('generating salary slip: ' + error.message);
             }
         };
 
@@ -11539,7 +11865,7 @@
             }
             
             // Show success message first
-            alert('✅ Salary slip generated and saved successfully!\n\nOvertime calculated at Rs. ' + formatNumber(hourlyRate.toFixed(2)) + '/hour');
+            showSuccess(' Salary slip generated and saved successfully!\n\nOvertime calculated at Rs. ' + formatNumber(hourlyRate.toFixed(2)) + '/hour');
             
             // Show email option if email is configured and employee has email
             const emailConfig = JSON.parse(localStorage.getItem('emailConfig') || '{}');
@@ -11733,21 +12059,21 @@
         window.downloadSalarySlip = async (slipId) => {
             const slip = salarySlips.find(s => s.id === slipId);
             if (!slip) {
-                alert('Salary slip not found!');
+                showError('!');
                 return;
             }
 
             try {
                 // Ensure jsPDF is loaded
                 if (typeof window.jspdf === 'undefined') {
-                    alert('PDF library is loading... Please wait a moment and try again.');
+                    showWarning('PDF library is loading... Please wait a moment and try again.');
                     return;
                 }
 
                 // Find the employee
                 const employee = employees.find(emp => emp.id === slip.employeeId);
                 if (!employee) {
-                    alert('Employee not found!');
+                    showError('!');
                     return;
                 }
 
@@ -11780,7 +12106,7 @@
                 await generateSalarySlipPDF(salaryData);
             } catch (error) {
                 console.error('Error downloading salary slip:', error);
-                alert('Error downloading salary slip: ' + error.message);
+                showError('downloading salary slip: ' + error.message);
             }
         };
 
@@ -11788,7 +12114,7 @@
         window.viewSlipDetails = (slipId) => {
             const slip = salarySlips.find(s => s.id === slipId);
             if (!slip) {
-                alert('Salary slip not found!');
+                showError('!');
                 return;
             }
 
@@ -11814,14 +12140,14 @@
                 <em>${slip.netSalaryWords}</em>
             `;
 
-            alert(details);
+            showInfo(details);
         };
 
         // Delete salary slip
         window.deleteSalarySlip = async (slipId) => {
             const slip = salarySlips.find(s => s.id === slipId);
             if (!slip) {
-                alert('Salary slip not found!');
+                showError('!');
                 return;
             }
 
@@ -11856,17 +12182,17 @@
                 renderSalarySlips();
                 updateSalarySlipsStats();
 
-                alert('Salary slip deleted successfully!');
+                showSuccess('!');
             } catch (error) {
                 console.error('Error deleting salary slip:', error);
-                alert('Error deleting salary slip: ' + error.message);
+                showError('deleting salary slip: ' + error.message);
             }
         };
 
         // Export all salary slips
         window.exportAllSalarySlipsPDF = async () => {
             if (salarySlips.length === 0) {
-                alert('⚠️ No salary slips found to export!');
+                showWarning(' No salary slips found to export!');
                 return;
             }
             
@@ -12004,7 +12330,7 @@
             }
             
             doc.save(`All_Salary_Slips_${new Date().toISOString().split('T')[0]}.pdf`);
-            alert(`✅ Successfully exported ${salarySlips.length} salary slips!`);
+            showSuccess(` Successfully exported ${salarySlips.length} salary slips!`);
         };
 
 
@@ -12244,7 +12570,7 @@
             });
             
             if (items.length === 0) {
-                alert('Please add at least one item');
+                showWarning('add at least one item');
                 return;
             }
             
@@ -12287,19 +12613,19 @@
                 if (typeof db !== 'undefined' && typeof addDoc !== 'undefined') {
                     if (quotId) {
                         await updateDoc(doc(db, 'quotations', quotId), quotData);
-                        alert('✅ Quotation updated successfully!');
+                        showSuccess(' Quotation updated successfully!');
                     } else {
                         quotData.createdAt = new Date().toISOString();
                         quotData.createdBy = currentUser?.username || 'System';
                         await addDoc(collection(db, 'quotations'), quotData);
-                        alert('✅ Quotation created successfully!');
+                        showSuccess(' Quotation created successfully!');
                     }
                     closeModal('quotationModal');
                     await loadBillingData();
                 }
             } catch (error) {
                 console.error('Error saving quotation:', error);
-                alert('Error saving quotation: ' + error.message);
+                showError('saving quotation: ' + error.message);
             }
         });
         
@@ -12313,17 +12639,17 @@
             try {
                 if (typeof db !== 'undefined' && typeof deleteDoc !== 'undefined') {
                     await deleteDoc(doc(db, 'quotations', id));
-                    alert('✅ Quotation deleted successfully!');
+                    showSuccess(' Quotation deleted successfully!');
                     await loadBillingData();
                 }
             } catch (error) {
                 console.error('Error deleting quotation:', error);
-                alert('Error deleting quotation: ' + error.message);
+                showError('deleting quotation: ' + error.message);
             }
         };
 
         window.downloadQuotationPDF = (id) => {
-            alert('Download Quotation PDF feature - will generate professional quotation with company letterhead');
+            showInfo('Download Quotation PDF feature - will generate professional quotation with company letterhead');
         };
 
         window.convertQuotationToPI = async (quotId) => {
@@ -12359,13 +12685,13 @@
             try {
                 if (typeof db !== 'undefined' && typeof addDoc !== 'undefined') {
                     await addDoc(collection(db, 'proformaInvoices'), piData);
-                    alert('✅ Proforma Invoice created successfully!');
+                    showSuccess(' Proforma Invoice created successfully!');
                     await loadBillingData();
                     showBillingSection('proformaInvoices');
                 }
             } catch (error) {
                 console.error('Error creating PI:', error);
-                alert('Error creating PI: ' + error.message);
+                showError('creating PI: ' + error.message);
             }
         };
 
@@ -12496,7 +12822,7 @@
             });
             
             if (items.length === 0) {
-                alert('Please add at least one item');
+                showWarning('add at least one item');
                 return;
             }
             
@@ -12529,19 +12855,19 @@
                 if (typeof db !== 'undefined' && typeof addDoc !== 'undefined') {
                     if (poId) {
                         await updateDoc(doc(db, 'purchaseOrders', poId), poData);
-                        alert('✅ Purchase Order updated successfully!');
+                        showSuccess(' Purchase Order updated successfully!');
                     } else {
                         poData.createdAt = new Date().toISOString();
                         poData.createdBy = currentUser?.username || 'System';
                         await addDoc(collection(db, 'purchaseOrders'), poData);
-                        alert('✅ Purchase Order created successfully!');
+                        showSuccess(' Purchase Order created successfully!');
                     }
                     closeModal('purchaseOrderModal');
                     await loadBillingData();
                 }
             } catch (error) {
                 console.error('Error saving purchase order:', error);
-                alert('Error saving purchase order: ' + error.message);
+                showError('saving purchase order: ' + error.message);
             }
         });
         
@@ -12860,7 +13186,7 @@
             });
             
             if (items.length === 0) {
-                alert('Please add at least one item');
+                showWarning('add at least one item');
                 return;
             }
             
@@ -12907,19 +13233,19 @@
                 if (typeof db !== 'undefined' && typeof addDoc !== 'undefined') {
                     if (piId) {
                         await updateDoc(doc(db, 'proformaInvoices', piId), piData);
-                        alert('✅ Proforma Invoice updated successfully!');
+                        showSuccess(' Proforma Invoice updated successfully!');
                     } else {
                         piData.createdAt = new Date().toISOString();
                         piData.createdBy = currentUser?.username || 'System';
                         await addDoc(collection(db, 'proformaInvoices'), piData);
-                        alert('✅ Proforma Invoice created successfully!');
+                        showSuccess(' Proforma Invoice created successfully!');
                     }
                     closeModal('proformaInvoiceModal');
                     await loadBillingData();
                 }
             } catch (error) {
                 console.error('Error saving proforma invoice:', error);
-                alert('Error saving proforma invoice: ' + error.message);
+                showError('saving proforma invoice: ' + error.message);
             }
         });
         
@@ -13087,7 +13413,7 @@
             
             const amount = parseFloat(paymentAmount);
             if (amount > pi.balanceAmount) {
-                alert('Payment amount cannot exceed balance!');
+                showError('Payment amount cannot exceed balance!');
                 return;
             }
             
@@ -13110,12 +13436,12 @@
                         lastPaymentDate: new Date().toISOString()
                     });
                     
-                    alert('✅ Payment recorded successfully!');
+                    showSuccess(' Payment recorded successfully!');
                     await loadBillingData();
                 }
             } catch (error) {
                 console.error('Error recording payment:', error);
-                alert('Error recording payment: ' + error.message);
+                showError('recording payment: ' + error.message);
             }
         };
 
@@ -13124,7 +13450,7 @@
             if (!pi) return;
             
             if (pi.status !== 'Paid') {
-                alert('PI must be fully paid before converting to Tax Invoice!');
+                showError('PI must be fully paid before converting to Tax Invoice!');
                 return;
             }
             
@@ -13155,13 +13481,13 @@
                     // Delete PI
                     await deleteDoc(doc(db, 'proformaInvoices', piId));
                     
-                    alert('✅ Tax Invoice created and PI deleted successfully!');
+                    showSuccess(' Tax Invoice created and PI deleted successfully!');
                     await loadBillingData();
                     showBillingSection('taxInvoices');
                 }
             } catch (error) {
                 console.error('Error converting PI to Tax Invoice:', error);
-                alert('Error: ' + error.message);
+                showError('Error: ' + error.message);
             }
         };
 
@@ -13346,7 +13672,7 @@
             });
             
             if (items.length === 0) {
-                alert('Please add at least one item');
+                showWarning('add at least one item');
                 return;
             }
             
@@ -13395,19 +13721,19 @@
                 if (typeof db !== 'undefined' && typeof addDoc !== 'undefined') {
                     if (tiId) {
                         await updateDoc(doc(db, 'taxInvoices', tiId), tiData);
-                        alert('✅ Tax Invoice updated successfully!');
+                        showSuccess(' Tax Invoice updated successfully!');
                     } else {
                         tiData.createdAt = new Date().toISOString();
                         tiData.createdBy = currentUser?.username || 'System';
                         await addDoc(collection(db, 'taxInvoices'), tiData);
-                        alert('✅ Tax Invoice created successfully!');
+                        showSuccess(' Tax Invoice created successfully!');
                     }
                     closeModal('taxInvoiceModal');
                     await loadBillingData();
                 }
             } catch (error) {
                 console.error('Error saving tax invoice:', error);
-                alert('Error saving tax invoice: ' + error.message);
+                showError('saving tax invoice: ' + error.message);
             }
         });
         
@@ -13569,7 +13895,7 @@
                 `${idx + 1}. ${item.description} - Qty: ${item.quantity} x Rs. ${item.rate} = Rs. ${formatNumber(item.amount.toFixed(2))}`
             ).join('\n');
             
-            alert(`TAX INVOICE DETAILS\n` +
+            showInfo(`TAX INVOICE DETAILS\n` +
                 `================\n` +
                 `Invoice #: ${ti.invoiceNumber}\n` +
                 `Date: ${new Date(ti.date).toLocaleDateString('en-IN')}\n` +
@@ -13740,7 +14066,7 @@
             });
 
             if (formData.items.length === 0) {
-                alert('Please add at least one item');
+                showWarning('add at least one item');
                 return;
             }
 
@@ -13827,7 +14153,7 @@
                 closeModal('invoiceModal');
                 loadInvoices();
             } catch (error) {
-                alert('Error saving invoice: ' + error.message);
+                showError('saving invoice: ' + error.message);
             }
         });
 
@@ -15621,13 +15947,13 @@
             // Check permission - allow admin, manager, sales
             const userRole = (currentUser.systemRole || currentUser.role || '').toLowerCase();
             if (userRole !== 'admin' && userRole !== 'manager' && userRole !== 'sales' && userRole !== 'sales representative') {
-                alert('You do not have permission to edit leads');
+                showError('You do not have permission to edit leads');
                 return;
             }
             
             // Sales reps can only edit their own assigned leads
             if ((userRole === 'sales' || userRole === 'sales representative') && lead.assignedTo !== currentUser.username) {
-                alert('You can only edit leads assigned to you');
+                showWarning('You can only edit leads assigned to you');
                 return;
             }
             
@@ -15689,7 +16015,7 @@
         window.deleteLead = async (id) => {
             const lead = leads.find(l => l.id === id);
             if (!canDeleteLead(lead)) {
-                alert('You do not have permission to delete this lead');
+                showError('You do not have permission to delete this lead');
                 return;
             }
             
@@ -15706,7 +16032,7 @@
                 }
                 await loadLeads();
             } catch (error) {
-                alert('Error deleting lead: ' + error.message);
+                showError('deleting lead: ' + error.message);
             }
         };
 
@@ -15732,7 +16058,7 @@
             }
 
             if (!currentActivityLeadId) {
-                alert('Unable to identify lead. Please try again.');
+                showError('Unable to identify lead. Please try again.');
                 return;
             }
 
@@ -15791,7 +16117,7 @@
             
             const leadId = document.getElementById('currentLeadId').value;
             if (!leadId) {
-                alert('No lead selected');
+                showWarning('No lead selected');
                 return;
             }
 
@@ -15893,10 +16219,10 @@
                     viewLeadDetails(leadId);
                 }
 
-                alert('Activity saved successfully!');
+                showSuccess('!');
             } catch (error) {
                 console.error('Error saving activity:', error);
-                alert('Error saving activity: ' + error.message);
+                showError('saving activity: ' + error.message);
             }
         });
 
@@ -16269,7 +16595,7 @@
                 doc.save(`Leads_Report_${new Date().toISOString().split('T')[0]}.pdf`);
             } catch (error) {
                 console.error('Error generating leads PDF:', error);
-                alert('Error generating leads PDF. Please try again.');
+                showError('generating leads PDF. Please try again.');
             }
         };
 
@@ -16476,7 +16802,7 @@
                     // Check permissions - allow admin, manager, and sales
                     const userRole = (currentUser.systemRole || currentUser.role || '').toLowerCase();
                     if (userRole !== 'admin' && userRole !== 'manager' && userRole !== 'sales' && userRole !== 'sales representative') {
-                        alert('You do not have permission to create/edit leads');
+                        showError('You do not have permission to create/edit leads');
                         return;
                     }
                     
@@ -16558,9 +16884,9 @@
                         await loadLeads();
                         // Also ensure cache is updated
                         localStorage.setItem('cachedLeads', JSON.stringify(leads));
-                        alert(`Lead ${leadId ? 'updated' : 'created'} successfully!${finalAssignedTo ? `\nAssigned to: ${finalAssignedTo}` : ''}`);
+                        showSuccess(`Lead ${leadId ? 'updated' : 'created'} successfully!${finalAssignedTo ? `\nAssigned to: ${finalAssignedTo}` : ''}`);
                     } catch (error) {
-                        alert('Error saving lead: ' + error.message);
+                        showError('saving lead: ' + error.message);
                     }
                 });
             }
@@ -17512,7 +17838,7 @@
             doc.text('RCI & Lift Health Analytics - Confidential Report', 105, 290, { align: 'center' });
             
             doc.save(`RCI_Analytics_Report_${new Date().toISOString().split('T')[0]}.pdf`);
-            alert('✅ RCI Analytics report exported successfully!');
+            showSuccess(' RCI Analytics report exported successfully!');
         };
 
 
@@ -17543,7 +17869,7 @@
         window.editAMC = (id) => {
             const contract = amc.find(c => c.id === id);
             if (!contract) {
-                alert('Contract not found');
+                showError('');
                 return;
             }
             
@@ -17608,10 +17934,10 @@
                     });
                 }
                 await loadAMC();
-                alert('AMC contract deleted successfully!');
+                showSuccess('!');
             } catch (error) {
                 console.error('Error deleting AMC contract:', error);
-                alert('Error deleting AMC contract: ' + error.message);
+                showError('deleting AMC contract: ' + error.message);
             }
         };
 
@@ -17834,10 +18160,10 @@
 
                 closeModal('amcModal');
                 await loadAMC();
-                alert(contractId ? 'AMC contract updated successfully!' : 'AMC contract added successfully!');
+                showSuccess(contractId ? 'AMC contract updated successfully!' : 'AMC contract added successfully!');
             } catch (error) {
                 console.error('Error saving AMC contract:', error);
-                alert('Error saving AMC contract: ' + error.message);
+                showError('saving AMC contract: ' + error.message);
             }
         });
 
@@ -18150,12 +18476,12 @@
             const notes = document.getElementById('newPaymentNotes').value;
             
             if (!amount || amount <= 0) {
-                alert('⚠️ Please enter a valid payment amount!');
+                showWarning(' Please enter a valid payment amount!');
                 return;
             }
             
             if (!date) {
-                alert('⚠️ Please select payment date!');
+                showWarning(' Please select payment date!');
                 return;
             }
             
@@ -18167,7 +18493,7 @@
             const balance = parseFloat(contract.amount || 0) - totalPaid;
             
             if (amount > balance) {
-                alert(`⚠️ Payment amount (Rs. ${amount.toLocaleString()}) exceeds balance due (Rs. ${balance.toLocaleString()})!`);
+                showError(`⚠️ Payment amount (Rs. ${amount.toLocaleString()}) exceeds balance due (Rs. ${balance.toLocaleString()})!`);
                 return;
             }
             
@@ -18192,13 +18518,13 @@
                     paymentStatus: (totalPaid + amount) >= parseFloat(contract.amount) ? 'Paid' : 'Partial'
                 });
                 
-                alert('✅ Payment recorded successfully!');
+                showSuccess(' Payment recorded successfully!');
                 await loadAMCContracts();
                 document.getElementById('paymentManagementModal').remove();
                 managePayments(contractId); // Refresh the modal
             } catch (error) {
                 console.error('Error recording payment:', error);
-                alert('❌ Error recording payment. Please try again.');
+                showError('recording payment. Please try again.');
             }
         };
         
@@ -18440,7 +18766,7 @@
                 doc.save(`AMC_Contracts_${new Date().toISOString().split('T')[0]}.pdf`);
             } catch (error) {
                 console.error('Error generating AMC PDF:', error);
-                alert('Error generating AMC PDF: ' + error.message);
+                showError('generating AMC PDF: ' + error.message);
             }
         };
 
@@ -18536,7 +18862,7 @@
                 doc.save(`AMC_${reportType}_${new Date().toISOString().split('T')[0]}.pdf`);
             } catch (error) {
                 console.error('Error generating renewals report:', error);
-                alert('Error generating renewals report: ' + error.message);
+                showError('generating renewals report: ' + error.message);
             }
         };
 
@@ -18788,10 +19114,10 @@
                 renderTasks();
                 updateTaskStats();
                 closeModal('taskModal');
-                alert(taskId ? 'Task updated successfully!' : 'Task created successfully!');
+                showSuccess(taskId ? 'Task updated successfully!' : 'Task created successfully!');
             } catch (error) {
                 console.error('Error saving task:', error);
-                alert('Error saving task. Please try again.');
+                showError('saving task. Please try again.');
             }
         });
 
@@ -18824,10 +19150,10 @@
                 renderTasks();
                 updateTaskStats();
                 closeModal('selfTaskModal');
-                alert('Self-task created successfully!');
+                showSuccess('!');
             } catch (error) {
                 console.error('Error saving self-task:', error);
-                alert('Error creating task. Please try again.');
+                showError('creating task. Please try again.');
             }
         });
 
@@ -18835,13 +19161,13 @@
         window.editTask = (id) => {
             const task = tasks.find(t => t.id === id);
             if (!task) {
-                alert('Task not found');
+                showError('');
                 return;
             }
             
             // Check permissions
             if (currentUser.role !== 'admin' && task.assignedTo !== currentUser.username) {
-                alert('You can only edit your own tasks');
+                showWarning('You can only edit your own tasks');
                 return;
             }
             
@@ -18865,13 +19191,13 @@
         window.deleteTask = async (id) => {
             const task = tasks.find(t => t.id === id);
             if (!task) {
-                alert('Task not found');
+                showError('');
                 return;
             }
             
             // Check permissions
             if (currentUser.role !== 'admin' && task.assignedTo !== currentUser.username) {
-                alert('You can only delete your own tasks');
+                showError('You can only delete your own tasks');
                 return;
             }
             
@@ -18885,10 +19211,10 @@
                 localStorage.setItem('cachedTasks', JSON.stringify(tasks));
                 renderTasks();
                 updateTaskStats();
-                alert('Task deleted successfully!');
+                showSuccess('!');
             } catch (error) {
                 console.error('Error deleting task:', error);
-                alert('Error deleting task. Please try again.');
+                showError('deleting task. Please try again.');
             }
         };
 
@@ -19043,7 +19369,7 @@
                 doc.save(`Maintenance_Schedule_${new Date().toISOString().split('T')[0]}.pdf`);
             } catch (error) {
                 console.error('Error generating maintenance PDF:', error);
-                alert('Error generating maintenance PDF: ' + error.message);
+                showError('generating maintenance PDF: ' + error.message);
             }
         };
 
@@ -19355,7 +19681,7 @@
             
             } catch (error) {
                 console.error('Error generating maintenance report PDF:', error);
-                alert('Error generating maintenance report PDF: ' + error.message);
+                showError('generating maintenance report PDF: ' + error.message);
             }
         };
 
@@ -20689,7 +21015,7 @@
             try {
                 const contract = amc.find(a => a.id === amcId);
                 if (!contract) {
-                    alert('❌ AMC contract not found!');
+                    showError('!');
                     return;
                 }
                 
@@ -20788,7 +21114,7 @@
                 
             } catch (error) {
                 console.error('Error sending AMC email:', error);
-                alert('❌ Error sending AMC email. Please try again.');
+                showError('sending AMC email. Please try again.');
             }
         };
 
@@ -20797,7 +21123,7 @@
             try {
                 const record = maintenance.find(m => m.id === maintenanceId);
                 if (!record) {
-                    alert('❌ Maintenance record not found!');
+                    showError('!');
                     return;
                 }
                 
@@ -20890,7 +21216,7 @@
                 
             } catch (error) {
                 console.error('Error sending maintenance email:', error);
-                alert('❌ Error sending maintenance email. Please try again.');
+                showError('sending maintenance email. Please try again.');
             }
         };
 
@@ -20899,7 +21225,7 @@
             try {
                 // This would need to fetch the specific invoice details
                 // For now, showing a placeholder
-                alert(`📧 Sending ${invoiceType} invoice ${invoiceId} via email...
+                showInfo(`📧 Sending ${invoiceType} invoice ${invoiceId} via email...
 
 This feature will send the invoice PDF to the client's email address using the configured SMTP settings.
 
@@ -20910,7 +21236,7 @@ Implementation requires:
                 
             } catch (error) {
                 console.error('Error sending billing email:', error);
-                alert('❌ Error sending billing email. Please try again.');
+                showError('sending billing email. Please try again.');
             }
         };
 
@@ -21001,7 +21327,7 @@ Implementation requires:
                 Just paste the app password and click "Test & Validate"
             `;
             
-            alert(helpText);
+            showInfo(helpText);
         };
 
         // Save Company Settings
@@ -21015,7 +21341,7 @@ Implementation requires:
             const companyPAN = document.getElementById('companyPAN').value.trim();
             
             if (!companyName || !companyEmail || !companyContact || !companyAddress) {
-                alert('⚠️ Please fill in all required fields (marked with *)');
+                showWarning(' Please fill in all required fields (marked with *)');
                 return;
             }
             
@@ -21038,18 +21364,18 @@ Implementation requires:
                 await setDoc(doc(db, 'settings', 'company'), companySettings);
                 
                 console.log('Company settings saved successfully!');
-                alert('✅ Company settings saved successfully!');
+                showSuccess(' Company settings saved successfully!');
             } catch (error) {
                 console.error('Error saving company settings:', error);
                 console.error('Error code:', error.code);
                 console.error('Error message:', error.message);
                 
                 if (error.code === 'permission-denied') {
-                    alert('❌ Permission denied. Firebase security rules may be blocking this write.\n\nSettings are valid but cannot be saved to database.');
+                    showError('❌ Permission denied. Firebase security rules may be blocking this write.\n\nSettings are valid but cannot be saved to database.');
                 } else if (error.code === 'unavailable') {
-                    alert('❌ Firebase is offline. Check your internet connection.');
+                    showError('❌ Firebase is offline. Check your internet connection.');
                 } else {
-                    alert('❌ Error saving: ' + error.message);
+                    showError('saving: ' + error.message);
                 }
             }
         };
@@ -21083,14 +21409,14 @@ Implementation requires:
             const appPassword = document.getElementById('appPassword').value.trim();
             
             if (!provider || !smtpServer || !smtpPort || !senderEmail || !appPassword) {
-                alert('⚠️ Please fill in all required email configuration fields');
+                showWarning(' Please fill in all required email configuration fields');
                 return;
             }
             
             // Validate email format
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(senderEmail)) {
-                alert('⚠️ Please enter a valid email address');
+                showWarning(' Please enter a valid email address');
                 return;
             }
             
@@ -21132,7 +21458,7 @@ Implementation requires:
             
             // Validate all required fields
             if (!provider || !smtpServer || !smtpPort || !senderEmail || !appPassword) {
-                alert('⚠️ Please fill in all required fields and validate the connection first!');
+                showWarning(' Please fill in all required fields and validate the connection first!');
                 return;
             }
             
@@ -21156,7 +21482,7 @@ Implementation requires:
                 await setDoc(doc(db, 'settings', 'email'), emailConfig);
                 
                 console.log('Email config saved successfully!');
-                alert('✅ Email configuration saved successfully! You can now send PDFs directly to clients.');
+                showSuccess(' Email configuration saved successfully! You can now send PDFs directly to clients.');
             } catch (error) {
                 console.error('Error saving email configuration:', error);
                 console.error('Error code:', error.code);
@@ -21164,11 +21490,11 @@ Implementation requires:
                 
                 // More specific error messages
                 if (error.code === 'permission-denied') {
-                    alert('❌ Permission denied. Firebase security rules may be blocking this write.\n\nThe configuration is valid but cannot be saved to database.\n\nYou can still use the email settings in this session.');
+                    showError('❌ Permission denied. Firebase security rules may be blocking this write.\n\nThe configuration is valid but cannot be saved to database.\n\nYou can still use the email settings in this session.');
                 } else if (error.code === 'unavailable') {
-                    alert('❌ Firebase is offline. Check your internet connection.');
+                    showError('❌ Firebase is offline. Check your internet connection.');
                 } else {
-                    alert('❌ Error saving: ' + error.message + '\n\nThe settings are valid but could not be saved to database.');
+                    showError('saving: ' + error.message + '\n\nThe settings are valid but could not be saved to database.');
                 }
             }
         };
@@ -21235,7 +21561,7 @@ Implementation requires:
                 const emailDocRef = doc(db, 'settings', 'email');
                 const emailDocSnap = await getDoc(emailDocRef);
                 if (!emailDocSnap.exists() || !emailDocSnap.data().configured) {
-                    alert('⚠️ Email is not configured. Please configure email settings first.');
+                    showWarning(' Email is not configured. Please configure email settings first.');
                     return false;
                 }
                 
@@ -21318,7 +21644,7 @@ ${companyInfo.email}`;
                             attachment: `${pdfType}.pdf`
                         });
                         
-                        alert(`✅ Email sent successfully to ${recipientEmail}!
+                        showSuccess(` Email sent successfully to ${recipientEmail}!
 
 Subject: ${subject}
 
@@ -21328,14 +21654,14 @@ Note: In production, this would send via your configured SMTP server.`);
                     };
                     
                     reader.onerror = () => {
-                        alert('❌ Error preparing email. Please try again.');
+                        showError('preparing email. Please try again.');
                         reject(false);
                     };
                 });
                 
             } catch (error) {
                 console.error('Error sending email:', error);
-                alert('❌ Error sending email. Please check your email configuration.');
+                showError('sending email. Please check your email configuration.');
                 return false;
             }
         };
@@ -21390,7 +21716,7 @@ Note: In production, this would send via your configured SMTP server.`);
                         const lines = text.split('\n');
                         
                         if (lines.length < 2) {
-                            alert('❌ File is empty or invalid format!');
+                            showError('❌ File is empty or invalid format!');
                             return;
                         }
                         
@@ -21434,7 +21760,7 @@ Note: In production, this would send via your configured SMTP server.`);
                             }
                         }
                         
-                        alert(`✅ Import Complete!\n\n✓ Imported: ${importedCount} leads\n${failedCount > 0 ? `✗ Failed: ${failedCount} leads` : ''}`);
+                        showSuccess(` Import Complete!\n\n✓ Imported: ${importedCount} leads\n${failedCount > 0 ? `✗ Failed: ${failedCount} leads` : ''}`);
                         loadLeads();
                     };
                     
@@ -21442,7 +21768,7 @@ Note: In production, this would send via your configured SMTP server.`);
                     
                 } catch (error) {
                     console.error('Error reading file:', error);
-                    alert('❌ Error reading file. Please ensure it is a valid CSV file.');
+                    showError('reading file. Please ensure it is a valid CSV file.');
                 }
             };
             
@@ -21600,7 +21926,7 @@ Note: In production, this would send via your configured SMTP server.`);
 
         // Export Filtered Renewals PDF
         window.exportFilteredRenewalsPDF = async (title) => {
-            alert('📊 Exporting filtered renewals report...\n\nThis feature will generate a PDF of the filtered contracts.');
+            showInfo('📊 Exporting filtered renewals report...\n\nThis feature will generate a PDF of the filtered contracts.');
         };
 
         // ============================================
@@ -21685,7 +22011,7 @@ Note: In production, this would send via your configured SMTP server.`);
             const imageUrl = document.getElementById('newMaterialImage').value.trim();
 
             if (!name || !unit) {
-                alert('⚠️ Please fill in all required fields (Material Name and Unit)');
+                showWarning(' Please fill in all required fields (Material Name and Unit)');
                 return;
             }
 
@@ -21707,10 +22033,10 @@ Note: In production, this would send via your configured SMTP server.`);
 
                 // Reload materials
                 await loadMaterials();
-                alert('✅ Material added successfully!');
+                showSuccess(' Material added successfully!');
             } catch (error) {
                 console.error('Error adding material:', error);
-                alert('❌ Error adding material. Please try again.');
+                showError('adding material. Please try again.');
             }
         };
 
@@ -21721,10 +22047,10 @@ Note: In production, this would send via your configured SMTP server.`);
             try {
                 await deleteDoc(doc(db, 'materials', id));
                 await loadMaterials();
-                alert('✅ Material deleted successfully!');
+                showSuccess(' Material deleted successfully!');
             } catch (error) {
                 console.error('Error deleting material:', error);
-                alert('❌ Error deleting material. Please try again.');
+                showError('deleting material. Please try again.');
             }
         };
 
@@ -21799,7 +22125,7 @@ Note: In production, this would send via your configured SMTP server.`);
         // Add Material Row to BOM
         window.addBOMMaterialRow = () => {
             if (materials.length === 0) {
-                alert('⚠️ No materials available. Please add materials in Settings > Materials first.');
+                showWarning(' No materials available. Please add materials in Settings > Materials first.');
                 return;
             }
 
@@ -21922,7 +22248,7 @@ Note: In production, this would send via your configured SMTP server.`);
             const notes = document.getElementById('bomNotes').value.trim();
 
             if (!projectId) {
-                alert('⚠️ Please select a project');
+                showWarning(' Please select a project');
                 return;
             }
 
@@ -21931,7 +22257,7 @@ Note: In production, this would send via your configured SMTP server.`);
             const rows = Array.from(tableBody.querySelectorAll('tr')).filter(row => row.id.startsWith('bomRow_'));
 
             if (rows.length === 0) {
-                alert('⚠️ Please add at least one material to the BOM');
+                showWarning(' Please add at least one material to the BOM');
                 return;
             }
 
@@ -21950,7 +22276,7 @@ Note: In production, this would send via your configured SMTP server.`);
                 const total = quantity * price;
 
                 if (!materialId || quantity <= 0) {
-                    alert('⚠️ Please select material and enter valid quantity for all rows');
+                    showWarning(' Please select material and enter valid quantity for all rows');
                     return;
                 }
 
@@ -21990,7 +22316,7 @@ Note: In production, this would send via your configured SMTP server.`);
 
                 await addDoc(collection(db, 'boms'), bomData);
 
-                alert('✅ BOM created successfully!');
+                showSuccess(' BOM created successfully!');
                 closeModal('bomModal');
                 
                 // Reset form
@@ -22007,7 +22333,7 @@ Note: In production, this would send via your configured SMTP server.`);
                 await loadBOMs();
             } catch (error) {
                 console.error('Error saving BOM:', error);
-                alert('❌ Error saving BOM. Please try again.');
+                showError('saving BOM. Please try again.');
             }
         };
 
@@ -22253,10 +22579,10 @@ Note: In production, this would send via your configured SMTP server.`);
             try {
                 await deleteDoc(doc(db, 'boms', id));
                 await loadBOMs();
-                alert('✅ BOM deleted successfully!');
+                showSuccess(' BOM deleted successfully!');
             } catch (error) {
                 console.error('Error deleting BOM:', error);
-                alert('❌ Error deleting BOM. Please try again.');
+                showError('deleting BOM. Please try again.');
             }
         };
 
@@ -22277,7 +22603,7 @@ Note: In production, this would send via your configured SMTP server.`);
         window.exportBOMPDF = async (id) => {
             const bom = boms.find(b => b.id === id);
             if (!bom) {
-                alert('❌ BOM not found');
+                showError('');
                 return;
             }
 
@@ -22717,7 +23043,7 @@ Note: In production, this would send via your configured SMTP server.`);
                 // Download PDF
                 doc.save(fileName);
                 
-                alert('✅ BOM PDF with images generated successfully!');
+                showSuccess(' BOM PDF with images generated successfully!');
                 
                 // Show email option if email is configured and client has email
                 const emailConfig = JSON.parse(localStorage.getItem('emailConfig') || '{}');
@@ -22733,7 +23059,7 @@ Note: In production, this would send via your configured SMTP server.`);
                 
             } catch (error) {
                 console.error('Error generating PDF:', error);
-                alert('❌ Error generating PDF. Please try again.');
+                showError('generating PDF. Please try again.');
             }
         };
 
@@ -23101,47 +23427,144 @@ Note: In production, this would send via your configured SMTP server.`);
         // Send Alert (supports push, WhatsApp, SMS)
         async function sendAlert(alertData) {
             try {
+                const sentVia = ['system'];
+
                 // Store alert in Firebase
                 await addDoc(collection(db, 'geofenceAlerts'), {
                     ...alertData,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     read: false,
-                    sentVia: ['system'] // Can add 'whatsapp', 'sms', 'push' based on implementation
+                    sentVia: sentVia
                 });
 
                 // Add to in-memory array
                 geofenceAlerts.push(alertData);
 
-                // Show notification in UI
+                // Show notification in UI using toast system
                 showNotification(alertData.type, alertData.message);
 
-                // TODO: Implement actual push notification / WhatsApp / SMS integration
-                // This would connect to your existing alert infrastructure
-                
-                console.log('📧 Alert sent:', alertData.message);
-                
+                // Push Notification Integration (using Web Push API)
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    try {
+                        new Notification('Avant Elevators Alert', {
+                            body: alertData.message,
+                            icon: 'ambivare.png',
+                            badge: 'ambivare.png',
+                            tag: 'geofence-alert',
+                            requireInteraction: true
+                        });
+                        sentVia.push('push');
+                    } catch (err) {
+                        console.warn('Push notification failed:', err.message);
+                    }
+                }
+
+                // WhatsApp Integration (using WhatsApp Business API URL scheme)
+                // This opens WhatsApp with pre-filled message for admin to send
+                const whatsappEnabled = localStorage.getItem('whatsapp_alerts_enabled') === 'true';
+                const adminPhone = localStorage.getItem('admin_whatsapp_number');
+
+                if (whatsappEnabled && adminPhone) {
+                    const whatsappMessage = encodeURIComponent(
+                        `🚨 *Avant Elevators Alert*\n\n` +
+                        `Type: ${alertData.type}\n` +
+                        `Message: ${alertData.message}\n` +
+                        `Time: ${new Date().toLocaleString('en-IN')}`
+                    );
+                    // Store WhatsApp link for manual sending
+                    alertData.whatsappLink = `https://wa.me/${adminPhone}?text=${whatsappMessage}`;
+                    sentVia.push('whatsapp');
+                }
+
+                // SMS Integration (using SMS URL scheme for mobile devices)
+                // This opens SMS app with pre-filled message
+                const smsEnabled = localStorage.getItem('sms_alerts_enabled') === 'true';
+                const smsNumber = localStorage.getItem('admin_sms_number');
+
+                if (smsEnabled && smsNumber) {
+                    const smsMessage = encodeURIComponent(
+                        `Avant Elevators Alert: ${alertData.type} - ${alertData.message}`
+                    );
+                    // Store SMS link for manual sending
+                    alertData.smsLink = `sms:${smsNumber}?body=${smsMessage}`;
+                    sentVia.push('sms');
+                }
+
+                // Email Alert (using existing email configuration)
+                const emailConfig = JSON.parse(localStorage.getItem('emailConfig') || '{}');
+                const emailAlertsEnabled = localStorage.getItem('email_alerts_enabled') === 'true';
+
+                if (emailAlertsEnabled && emailConfig.validated && emailConfig.senderEmail) {
+                    try {
+                        await Email.send({
+                            SecureToken: emailConfig.appPassword,
+                            To: emailConfig.senderEmail,
+                            From: emailConfig.senderEmail,
+                            Subject: `🚨 Avant Elevators - ${alertData.type} Alert`,
+                            Body: `
+                                <h2>Geofence Alert Notification</h2>
+                                <p><strong>Type:</strong> ${alertData.type}</p>
+                                <p><strong>Message:</strong> ${alertData.message}</p>
+                                <p><strong>Technician:</strong> ${alertData.technicianName || 'N/A'}</p>
+                                <p><strong>Site:</strong> ${alertData.siteName || 'N/A'}</p>
+                                <p><strong>Time:</strong> ${new Date().toLocaleString('en-IN')}</p>
+                            `
+                        });
+                        sentVia.push('email');
+                    } catch (emailErr) {
+                        console.warn('Email alert failed:', emailErr.message);
+                    }
+                }
+
             } catch (error) {
-                console.error('Error sending alert:', error);
+                showError('Failed to send alert: ' + error.message);
             }
         }
 
-        // Show notification in UI
+        // Show notification in UI using toast system
         function showNotification(type, message) {
-            // You can implement a toast notification system here
-            console.log(`🔔 ${type}: ${message}`);
-            
-            // Simple alert for now (replace with better UI notification)
-            if (type === 'EXIT') {
-                // Could show a warning-style notification
-                console.warn(message);
-            }
+            // Use the toast notification system
+            const toastType = type === 'ENTRY' ? 'success' :
+                            type === 'EXIT' ? 'warning' :
+                            type === 'FAKE_GPS' ? 'error' : 'info';
+
+            const toastTitle = type === 'ENTRY' ? 'Site Entry' :
+                             type === 'EXIT' ? 'Site Exit' :
+                             type === 'FAKE_GPS' ? 'GPS Alert' : 'Notification';
+
+            showToast(toastType, message, toastTitle, 6000);
         }
+
+        // Request notification permission on app load (for push notifications)
+        window.addEventListener('load', () => {
+            if ('Notification' in window && Notification.permission === 'default') {
+                // Don't auto-request, let admin enable it in settings
+                console.log('Push notifications available but not enabled');
+            }
+        });
+
+        // Function to enable push notifications (to be called from settings)
+        window.enablePushNotifications = async () => {
+            if (!('Notification' in window)) {
+                showError('Push notifications are not supported in this browser');
+                return false;
+            }
+
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                showSuccess('Push notifications enabled successfully');
+                return true;
+            } else {
+                showWarning('Push notifications permission denied');
+                return false;
+            }
+        };
 
         // Simulate technician app sending location every 45 seconds
         // In production, this would be called from technician mobile app
         window.technicianSendLocation = async (technicianId) => {
             if (!navigator.geolocation) {
-                alert('Geolocation is not supported by this browser.');
+                showError('Geolocation is not supported by this browser.');
                 return;
             }
 
@@ -23329,7 +23752,7 @@ Note: In production, this would send via your configured SMTP server.`);
                 
             } catch (error) {
                 console.error('❌ Error loading tracking data:', error);
-                alert('Error loading tracking data. Please refresh the page.');
+                showError('loading tracking data. Please refresh the page.');
             }
         }
 
@@ -23342,12 +23765,12 @@ Note: In production, this would send via your configured SMTP server.`);
                     site_radius_meters: parseInt(radius) || 100
                 });
                 
-                alert('✅ Geofence updated successfully!');
+                showSuccess(' Geofence updated successfully!');
                 await loadProjects();
                 
             } catch (error) {
                 console.error('Error updating geofence:', error);
-                alert('❌ Failed to update geofence');
+                showError('❌ Failed to update geofence');
             }
         };
 
@@ -23530,7 +23953,7 @@ Note: In production, this would send via your configured SMTP server.`);
                 const travelLogSnap = await getDoc(travelLogRef);
                 
                 if (!travelLogSnap.exists()) {
-                    alert('No travel data found for this date.');
+                    showWarning('No travel data found for this date.');
                     return;
                 }
                 
@@ -23652,7 +24075,7 @@ Note: In production, this would send via your configured SMTP server.`);
                 
             } catch (error) {
                 console.error('Error generating report:', error);
-                alert('Failed to generate report. Please try again.');
+                showError('Failed to generate report. Please try again.');
             }
         };
 
@@ -23665,12 +24088,12 @@ Note: In production, this would send via your configured SMTP server.`);
             const date = dateSelect.value;
             
             if (!technicianId) {
-                alert('Please select a technician');
+                showWarning('select a technician');
                 return;
             }
             
             if (!date) {
-                alert('Please select a date');
+                showWarning('select a date');
                 return;
             }
             
@@ -23965,7 +24388,7 @@ Note: In production, this would send via your configured SMTP server.`);
                 console.log('Geolocation support:', !!navigator.geolocation);
                 
                 if (!navigator.geolocation) {
-                    alert(`❌ Geolocation Not Supported
+                    showError(`❌ Geolocation Not Supported
                     
 Your browser doesn't support location tracking.
 Please use:
@@ -23983,7 +24406,7 @@ Please use:
                     const hostname = window.location.hostname || '';
                     
                     if (protocol !== 'https:' && hostname !== 'localhost' && hostname !== '127.0.0.1') {
-                        alert(`⚠️ Security Warning
+                        showWarning(`⚠️ Security Warning
                         
 Location tracking may not work on HTTP (non-secure) connections.
 For best results, use HTTPS.
@@ -23997,7 +24420,7 @@ Attempting to enable anyway...`);
                 // Check if user is logged in
                 if (!currentUser || !currentUser.id) {
                     console.error('Current user state:', currentUser);
-                    alert('❌ User not logged in. Please login first.');
+                    showError('❌ User not logged in. Please login first.');
                     return;
                 }
                 
@@ -24045,7 +24468,7 @@ Attempting to enable anyway...`);
                                 // If location access fails, disable tracking
                                 if (error.code === error.PERMISSION_DENIED) {
                                     disableTechnicianLocation();
-                                    alert('❌ Location access denied. Disabling tracking.');
+                                    showError('❌ Location access denied. Disabling tracking.');
                                 }
                             },
                             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -24067,7 +24490,7 @@ Attempting to enable anyway...`);
                     message: 'Location tracking enabled'
                 });
                 
-                alert('✅ Location sharing enabled successfully!');
+                showSuccess(' Location sharing enabled successfully!');
                 
                 // Refresh the appropriate interface based on user role
                 const userRole = (currentUser?.role || '').toLowerCase();
@@ -24091,7 +24514,7 @@ Attempting to enable anyway...`);
                 });
                 
                 if (error.code === 1) { // PERMISSION_DENIED
-                    alert(`❌ Location Access Denied
+                    showError(`❌ Location Access Denied
                     
 Please:
 1. Click the location icon 📍 in your browser's address bar
@@ -24101,7 +24524,7 @@ Please:
 
 If you're using HTTP (not HTTPS), location sharing may not work.`);
                 } else if (error.code === 2) { // POSITION_UNAVAILABLE
-                    alert(`❌ Location Service Unavailable
+                    showError(`❌ Location Service Unavailable
                     
 Please check:
 1. GPS/Location services are enabled on your device
@@ -24109,7 +24532,7 @@ Please check:
 3. Try moving to a location with better signal
 4. Restart your browser and try again`);
                 } else if (error.code === 3) { // TIMEOUT
-                    alert(`❌ Location Request Timed Out
+                    showError(`❌ Location Request Timed Out
                     
 Please:
 1. Check your internet connection
@@ -24117,7 +24540,7 @@ Please:
 3. Try again in a few moments
 4. Restart your browser if problem persists`);
                 } else if (error.name === 'NotAllowedError') {
-                    alert(`❌ Location Permission Required
+                    showError(`❌ Location Permission Required
                     
 To enable location tracking:
 1. Refresh this page
@@ -24125,7 +24548,7 @@ To enable location tracking:
 3. Or manually enable location in browser settings
 4. Make sure you're using HTTPS (secure connection)`);
                 } else if (error.name === 'NotSupportedError') {
-                    alert(`❌ Geolocation Not Supported
+                    showError(`❌ Geolocation Not Supported
                     
 Your browser or device doesn't support location tracking.
 Please try:
@@ -24133,7 +24556,7 @@ Please try:
 2. Using Chrome, Firefox, or Safari
 3. Enabling location services on your device`);
                 } else {
-                    alert(`❌ Location Sharing Failed
+                    showError(`❌ Location Sharing Failed
                     
 Error: ${error.message || 'Unknown error'}
                     
@@ -24186,7 +24609,7 @@ Please try:
                     message: 'Location tracking disabled'
                 });
                 
-                alert('✅ Location sharing disabled');
+                showSuccess(' Location sharing disabled');
                 
                 // Refresh the appropriate interface based on user role
                 const userRole = (currentUser?.role || '').toLowerCase();
@@ -24202,7 +24625,7 @@ Please try:
                 
             } catch (error) {
                 console.error('Error disabling location:', error);
-                alert('❌ Failed to disable location sharing');
+                showError('❌ Failed to disable location sharing');
             }
         };
         
@@ -24289,7 +24712,7 @@ Please try:
                 console.error('Error sending location:', error);
                 // If error persists, user might need to re-enable tracking
                 if (error.code === 'permission-denied' || error.message?.includes('permission')) {
-                    alert('❌ Location permission lost. Please disable and re-enable location sharing.');
+                    showError('Location permission lost. Please disable and re-enable location sharing.');
                 }
             }
         };
@@ -24354,7 +24777,7 @@ Please try:
                 }
             }
             
-            alert(`📋 Location Support Report\n\n${info.join('\n')}\n\nIf you see any ❌ or issues above, please address them before enabling location tracking.`);
+            showInfo(`📋 Location Support Report\n\n${info.join('\n')}\n\nIf you see any ❌ or issues above, please address them before enabling location tracking.`);
         };
         
         // Periodic status synchronization for technicians
@@ -24990,11 +25413,11 @@ Please try:
                     
                     console.log('✅ Tracking data refreshed successfully');
                 } else {
-                    alert('❌ Could not refresh - tracking content not found');
+                    showError('');
                 }
             } catch (error) {
                 console.error('Error refreshing tracking data:', error);
-                alert('❌ Failed to refresh data. Please try again.');
+                showError('❌ Failed to refresh data. Please try again.');
                 
                 // Remove loading indicator if exists
                 const loadingDiv = document.getElementById('refreshLoadingIndicator');
@@ -25155,7 +25578,7 @@ Please try:
                 
             } catch (error) {
                 console.error('Error generating tracking report:', error);
-                alert('Error generating tracking report. Please try again.');
+                showError('generating tracking report. Please try again.');
             }
         };
 
@@ -25164,7 +25587,7 @@ Please try:
             const mapContainer = document.getElementById('trackingMapContainer');
             
             if (!mapContainer) {
-                alert('Map container not found');
+                showError('');
                 return;
             }
             
@@ -25178,7 +25601,7 @@ Please try:
             } else if (mapContainer.mozRequestFullScreen) {
                 mapContainer.mozRequestFullScreen();
             } else {
-                alert('Fullscreen mode is not supported by your browser');
+                showWarning('Fullscreen mode is not supported by your browser');
                 return;
             }
             
@@ -25418,9 +25841,9 @@ Please try:
         window.copyConsoleLogs = function() {
             const text = consoleLogs.map(log => `[${log.time}] ${log.type.toUpperCase()}: ${log.message}`).join('\n');
             navigator.clipboard.writeText(text).then(() => {
-                alert('✅ Console logs copied to clipboard!');
+                showSuccess(' Console logs copied to clipboard!');
             }).catch(() => {
-                alert('❌ Failed to copy. Please select and copy manually.');
+                showError('❌ Failed to copy. Please select and copy manually.');
             });
         };
 
@@ -25789,104 +26212,12 @@ Please try:
             }
         };
 
-        window.validateEmailConfig = async () => {
-            const provider = document.getElementById('emailProvider').value;
-            const smtpServer = document.getElementById('smtpServer').value;
-            const smtpPort = document.getElementById('smtpPort').value;
-            const senderEmail = document.getElementById('senderEmail').value;
-            const appPassword = document.getElementById('appPassword').value;
-            const senderName = document.getElementById('senderName').value;
-
-            const statusDiv = document.getElementById('emailConfigStatus');
-            const saveBtn = document.getElementById('saveEmailBtn');
-            
-            if (!provider || !smtpServer || !smtpPort || !senderEmail || !appPassword) {
-                alert('Please fill in all required fields');
-                return;
-            }
-
-            statusDiv.innerHTML = '🔄 Testing email configuration...';
-            statusDiv.style.color = '#ea580c';
-
-            try {
-                // Here we'll simulate validation - in real implementation you'd test SMTP connection
-                // For now, we'll validate the format and show success
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(senderEmail)) {
-                    throw new Error('Invalid email address format');
-                }
-
-                if (appPassword.length < 8) {
-                    throw new Error('App password seems too short. Please check your app password.');
-                }
-
-                // Simulate async validation
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                
-                statusDiv.innerHTML = '✅ Email configuration validated successfully! Ready to send emails.';
-                statusDiv.style.color = '#16a34a';
-                saveBtn.disabled = false;
-                
-            } catch (error) {
-                statusDiv.innerHTML = `❌ Validation failed: ${error.message}`;
-                statusDiv.style.color = '#dc2626';
-                saveBtn.disabled = true;
-            }
-        };
-
-        window.saveEmailConfig = () => {
-            const emailConfig = {
-                provider: document.getElementById('emailProvider').value,
-                smtpServer: document.getElementById('smtpServer').value,
-                smtpPort: document.getElementById('smtpPort').value,
-                smtpEncryption: document.getElementById('smtpEncryption').value,
-                senderEmail: document.getElementById('senderEmail').value,
-                appPassword: document.getElementById('appPassword').value,
-                senderName: document.getElementById('senderName').value,
-                validated: true,
-                savedAt: new Date().toISOString()
-            };
-
-            localStorage.setItem('emailConfig', JSON.stringify(emailConfig));
-            
-            const statusDiv = document.getElementById('emailConfigStatus');
-            statusDiv.innerHTML = '💾 Email configuration saved successfully!';
-            statusDiv.style.color = '#16a34a';
-            
-            alert('Email configuration saved successfully!');
-        };
-
-        // Load saved email configuration
-        const loadEmailConfig = () => {
-            const saved = localStorage.getItem('emailConfig');
-            if (saved) {
-                try {
-                    const config = JSON.parse(saved);
-                    document.getElementById('emailProvider').value = config.provider || '';
-                    document.getElementById('smtpServer').value = config.smtpServer || '';
-                    document.getElementById('smtpPort').value = config.smtpPort || '';
-                    document.getElementById('smtpEncryption').value = config.smtpEncryption || 'TLS';
-                    document.getElementById('senderEmail').value = config.senderEmail || '';
-                    document.getElementById('appPassword').value = config.appPassword || '';
-                    document.getElementById('senderName').value = config.senderName || '';
-                    
-                    if (config.validated) {
-                        document.getElementById('emailConfigStatus').innerHTML = '✅ Email configuration loaded and validated.';
-                        document.getElementById('emailConfigStatus').style.color = '#16a34a';
-                        document.getElementById('saveEmailBtn').disabled = false;
-                    }
-                } catch (e) {
-                    console.error('Error loading email config:', e);
-                }
-            }
-        };
-
         // Email sending function
         const sendEmailWithPDF = async (recipientEmail, recipientName, subject, body, pdfBlob, filename) => {
             const emailConfig = JSON.parse(localStorage.getItem('emailConfig') || '{}');
             
             if (!emailConfig.validated) {
-                alert('Email is not configured. Please configure email settings first.');
+                showError('Email is not configured. Please configure email settings first.');
                 return false;
             }
 
@@ -25912,12 +26243,12 @@ Please try:
                 
                 // For now, we'll show success message
                 // In real implementation, you would call your backend email service
-                alert(`Email sent successfully to ${recipientEmail}!`);
+                showSuccess(`Email sent successfully to ${recipientEmail}!`);
                 return true;
                 
             } catch (error) {
                 console.error('Error sending email:', error);
-                alert('Failed to send email: ' + error.message);
+                showError('Failed to send email: ' + error.message);
                 return false;
             }
         };
@@ -25945,7 +26276,7 @@ Zoho:
 
 Note: Regular account passwords won't work. You must use app-specific passwords.`;
             
-            alert(helpText);
+            showInfo(helpText);
         };
 
         // Auto-load Leaflet when the page loads
@@ -25965,7 +26296,7 @@ Note: Regular account passwords won't work. You must use app-specific passwords.
             const emailConfig = JSON.parse(localStorage.getItem('emailConfig') || '{}');
             
             if (!emailConfig.validated) {
-                alert('⚠️ Email is not configured!\n\nPlease configure your email settings in the Settings tab before sending emails.');
+                showWarning(' Email is not configured!\n\nPlease configure your email settings in the Settings tab before sending emails.');
                 return false;
             }
 
@@ -26118,12 +26449,12 @@ Note: Regular account passwords won't work. You must use app-specific passwords.
             try {
                 const quot = quotations.find(q => q.id === quotId);
                 if (!quot) {
-                    alert('❌ Quotation not found!');
+                    showError('!');
                     return;
                 }
 
                 if (!quot.clientEmail) {
-                    alert('⚠️ No email address for this client!\n\nPlease add an email address to the quotation first.');
+                    showWarning(' No email address for this client!\n\nPlease add an email address to the quotation first.');
                     return;
                 }
 
@@ -26168,7 +26499,7 @@ Note: Regular account passwords won't work. You must use app-specific passwords.
 
             } catch (error) {
                 console.error('Error sending quotation email:', error);
-                alert('❌ Error sending quotation email: ' + error.message);
+                showError('sending quotation email: ' + error.message);
             }
         };
 
@@ -26177,12 +26508,12 @@ Note: Regular account passwords won't work. You must use app-specific passwords.
             try {
                 const pi = proformaInvoices.find(p => p.id === piId);
                 if (!pi) {
-                    alert('❌ Proforma Invoice not found!');
+                    showError('!');
                     return;
                 }
 
                 if (!pi.clientEmail) {
-                    alert('⚠️ No email address for this client!');
+                    showWarning(' No email address for this client!');
                     return;
                 }
 
@@ -26217,7 +26548,7 @@ Note: Regular account passwords won't work. You must use app-specific passwords.
 
             } catch (error) {
                 console.error('Error sending PI email:', error);
-                alert('❌ Error: ' + error.message);
+                showError('❌ Error: ' + error.message);
             }
         };
 
@@ -26226,12 +26557,12 @@ Note: Regular account passwords won't work. You must use app-specific passwords.
             try {
                 const ti = taxInvoices.find(t => t.id === tiId);
                 if (!ti) {
-                    alert('❌ Tax Invoice not found!');
+                    showError('!');
                     return;
                 }
 
                 if (!ti.clientEmail) {
-                    alert('⚠️ No email address for this client!');
+                    showWarning(' No email address for this client!');
                     return;
                 }
 
@@ -26265,7 +26596,7 @@ Note: Regular account passwords won't work. You must use app-specific passwords.
 
             } catch (error) {
                 console.error('Error sending invoice email:', error);
-                alert('❌ Error: ' + error.message);
+                showError('❌ Error: ' + error.message);
             }
         };
 
