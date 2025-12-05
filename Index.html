@@ -6370,6 +6370,40 @@
             localStorage.removeItem(SESSION_KEY);
         }
 
+        // Clear all cached data to prevent stale data from being displayed
+        function clearDataCache() {
+            console.log('Clearing all cached data...');
+            const keysToRemove = [
+                'cachedInventory',
+                'cachedProjects',
+                'cachedMaintenance',
+                'cachedAMC',
+                'cachedActivities',
+                'cachedEmployees',
+                'cachedSalarySlips',
+                'cachedQuotations',
+                'cachedPurchaseOrders',
+                'cachedProformaInvoices',
+                'cachedTaxInvoices',
+                'cachedLeads',
+                'cachedTasks'
+            ];
+
+            // Remove standard cache keys
+            keysToRemove.forEach(key => {
+                localStorage.removeItem(key);
+            });
+
+            // Remove dynamic lead activity cache keys (leadActivities_*)
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('leadActivities_')) {
+                    localStorage.removeItem(key);
+                }
+            });
+
+            console.log('Cache cleared successfully');
+        }
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('username').value.trim();
@@ -6399,6 +6433,7 @@
                         status: 'active'
                     };
                     saveSession(currentUser);
+                    clearDataCache(); // Clear stale cached data on login
                     showMainApp();
                     await loadData();
                     return;
@@ -6456,6 +6491,7 @@
                         console.log('✅ Login successful for:', foundUser.username);
                         currentUser = foundUser;
                         saveSession(currentUser);
+                        clearDataCache(); // Clear stale cached data on login
                         showMainApp();
                         await loadData();
                         // Start status sync for technicians
@@ -6470,6 +6506,7 @@
                         console.log('⚠️ User found with no status, treating as active');
                         currentUser = foundUser;
                         saveSession(currentUser);
+                        clearDataCache(); // Clear stale cached data on login
                         showMainApp();
                         await loadData();
                         // Start status sync for technicians
@@ -6563,6 +6600,7 @@
         window.logout = () => {
             if (confirm('Are you sure you want to logout?')) {
                 clearSession();
+                clearDataCache(); // Clear cached data on logout
                 currentUser = null;
                 document.getElementById('mainApp').classList.remove('active');
                 document.getElementById('loginScreen').classList.remove('hidden');
