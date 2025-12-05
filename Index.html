@@ -6330,6 +6330,7 @@
 
         let currentUser = null;
         let inventory = { warehouse: [], office: [], "service-van": [] };
+        let inventoryUnsubscribe = null;
         let projects = [];
         let maintenance = [];
         let amc = [];
@@ -6901,23 +6902,58 @@
         }
 
         async function loadInventory() {
+            // Unsubscribe previous listener if any
             try {
-                const snapshot = await getDocs(collection(db, 'inventory'));
-                inventory = { warehouse: [], office: [], "service-van": [] };
-                snapshot.docs.forEach(doc => {
-                    const item = { id: doc.id, ...doc.data() };
-                    if (inventory[item.location]) {
-                        inventory[item.location].push(item);
-                    }
+                if (inventoryUnsubscribe) {
+                    inventoryUnsubscribe();
+                    inventoryUnsubscribe = null;
+                }
+
+                // Use realtime listener to ensure deletes/updates are reflected immediately
+                inventoryUnsubscribe = onSnapshot(collection(db, 'inventory'), (snapshot) => {
+                    inventory = { warehouse: [], office: [], "service-van": [] };
+                    snapshot.docs.forEach(d => {
+                        const item = { id: d.id, ...d.data() };
+                        if (inventory[item.location]) {
+                            inventory[item.location].push(item);
+                        }
+                    });
+                    // Update cache and UI
+                    try { localStorage.setItem('cachedInventory', JSON.stringify(inventory)); } catch (e) { console.warn('Could not cache inventory:', e); }
+                    renderLocation('warehouse');
+                    renderLocation('office');
+                    renderLocation('service-van');
+                }, (error) => {
+                    console.error('Realtime inventory listener error:', error);
+                    // Fallback: try a server fetch to force fresh data
+                    (async () => {
+                        try {
+                            const snapshot = await getDocs(collection(db, 'inventory'));
+                            inventory = { warehouse: [], office: [], "service-van": [] };
+                            snapshot.docs.forEach(doc => {
+                                const item = { id: doc.id, ...doc.data() };
+                                if (inventory[item.location]) {
+                                    inventory[item.location].push(item);
+                                }
+                            });
+                            try { localStorage.setItem('cachedInventory', JSON.stringify(inventory)); } catch (e) { console.warn('Could not cache inventory:', e); }
+                            renderLocation('warehouse');
+                            renderLocation('office');
+                            renderLocation('service-van');
+                        } catch (err) {
+                            console.error('Error loading inventory fallback:', err);
+                            const cachedInventory = localStorage.getItem('cachedInventory');
+                            if (cachedInventory) {
+                                inventory = JSON.parse(cachedInventory);
+                                renderLocation('warehouse');
+                                renderLocation('office');
+                                renderLocation('service-van');
+                            }
+                        }
+                    })();
                 });
-                // Cache the data
-                localStorage.setItem('cachedInventory', JSON.stringify(inventory));
-                renderLocation('warehouse');
-                renderLocation('office');
-                renderLocation('service-van');
             } catch (error) {
-                console.error('Error loading inventory:', error);
-                // Try to load from cache
+                console.error('Error setting up inventory listener:', error);
                 const cachedInventory = localStorage.getItem('cachedInventory');
                 if (cachedInventory) {
                     inventory = JSON.parse(cachedInventory);
