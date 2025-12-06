@@ -7849,14 +7849,29 @@
         function renderMaintenance() {
             const tbody = document.getElementById('maintenanceList');
             if (!tbody) return;
-            
+
             if (!maintenance || maintenance.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="11" class="empty-state"><div class="empty-state-icon">🔧</div><p>No RCI records found. Click "New RCI Record" to get started.</p></td></tr>';
                 updateRCIStats();
                 return;
             }
 
-            tbody.innerHTML = maintenance.map(maint => {
+            // Filter maintenance tasks based on role
+            const userRole = currentUser.role.toLowerCase();
+            let filteredMaintenance = maintenance;
+
+            // Technicians only see their assigned tasks
+            if (userRole === 'technician') {
+                filteredMaintenance = maintenance.filter(m => m.assignedTo === currentUser.username);
+            }
+
+            if (filteredMaintenance.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="11" class="empty-state"><div class="empty-state-icon">🔧</div><p>No RCI records assigned to you.</p></td></tr>';
+                updateRCIStats();
+                return;
+            }
+
+            tbody.innerHTML = filteredMaintenance.map(maint => {
                 const statusClass = maint.status === 'Completed' ? 'success' : 
                                   maint.status === 'In Progress' ? 'warning' :
                                   maint.status === 'Scheduled' ? 'info' :
@@ -7927,18 +7942,45 @@
                         </td>
                         <td>
                             <div class="action-buttons">
-                                ${!maint.isAMCScheduled ? `<button class="btn btn-secondary btn-sm" onclick="editMaintenance('${maint.id}')">Edit</button>` : ''}
-                                ${maint.elevatorIds ? 
-                                    `<button class="btn btn-success btn-sm" onclick="completeMultiElevatorMaintenance('${maint.id}')">Complete</button>
-                                     ${maint.completedElevators && maint.completedElevators.length > 0 ? 
-                                        `<button class="btn btn-primary btn-sm" onclick="generateMultiElevatorReports('${maint.id}')">📥 PDF (${maint.completedElevators.length})</button>` : 
-                                        ''}` :
-                                    (maint.status === 'Completed' && hasSignatures ? 
-                                        `<button class="btn btn-primary btn-sm" onclick="exportMaintenanceReport('${maint.id}')">📥 PDF</button>
-                                         <button class="btn btn-success btn-sm" onclick="sendMaintenanceEmail('${maint.id}')" title="Send Completion Certificate via Email">📧 Send</button>` : 
-                                        '')
-                                }
-                                ${(currentUser.role === 'admin' || currentUser.role === 'Admin') ? `<button class="btn btn-danger btn-sm" onclick="deleteMaintenance('${maint.id}')">Delete</button>` : ''}
+                                ${(() => {
+                                    const userRole = currentUser.role.toLowerCase();
+                                    const isAssignedToMe = maint.assignedTo === currentUser.username;
+                                    const isAdmin = userRole === 'admin';
+                                    const isTechnician = userRole === 'technician';
+
+                                    let buttons = '';
+
+                                    // Show Edit/Complete button for:
+                                    // - Admin (always)
+                                    // - Technician (only their assigned tasks)
+                                    // - Other roles (only if not a technician role)
+                                    if (isAdmin || (isTechnician && isAssignedToMe) || (!isTechnician && userRole !== 'technician')) {
+                                        const buttonText = isTechnician ? (maint.status === 'Completed' ? 'View' : 'Complete') : 'Edit';
+                                        const buttonClass = isTechnician && maint.status !== 'Completed' ? 'btn-success' : 'btn-secondary';
+                                        buttons += `<button class="btn ${buttonClass} btn-sm" onclick="editMaintenance('${maint.id}')">${buttonText}</button>`;
+                                    }
+
+                                    // Multi-elevator complete button
+                                    if (maint.elevatorIds) {
+                                        buttons += `<button class="btn btn-success btn-sm" onclick="completeMultiElevatorMaintenance('${maint.id}')">Complete Multi</button>`;
+                                        if (maint.completedElevators && maint.completedElevators.length > 0) {
+                                            buttons += `<button class="btn btn-primary btn-sm" onclick="generateMultiElevatorReports('${maint.id}')">📥 PDF (${maint.completedElevators.length})</button>`;
+                                        }
+                                    }
+
+                                    // PDF and Email buttons for completed tasks
+                                    if (maint.status === 'Completed' && hasSignatures) {
+                                        buttons += `<button class="btn btn-primary btn-sm" onclick="exportMaintenanceReport('${maint.id}')">📥 PDF</button>`;
+                                        buttons += `<button class="btn btn-success btn-sm" onclick="sendMaintenanceEmail('${maint.id}')" title="Send Completion Certificate via Email">📧 Send</button>`;
+                                    }
+
+                                    // Delete button (admin only)
+                                    if (isAdmin) {
+                                        buttons += `<button class="btn btn-danger btn-sm" onclick="deleteMaintenance('${maint.id}')">Delete</button>`;
+                                    }
+
+                                    return buttons;
+                                })()}
                             </div>
                         </td>
                     </tr>
@@ -7953,13 +7995,27 @@
         function renderAMC() {
             const tbody = document.getElementById('amcList');
             if (!tbody) return;
-            
+
             if (!amc || amc.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="9" class="empty-state"><div class="empty-state-icon">📄</div><p>No AMC contracts found. Click "Add AMC Contract" to get started.</p></td></tr>';
                 return;
             }
 
-            tbody.innerHTML = amc.map(contract => {
+            // Filter AMC contracts based on role
+            const userRole = currentUser.role.toLowerCase();
+            let filteredAMC = amc;
+
+            // Technicians only see their assigned AMC contracts
+            if (userRole === 'technician') {
+                filteredAMC = amc.filter(a => a.assignedTo === currentUser.username);
+            }
+
+            if (filteredAMC.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="empty-state"><div class="empty-state-icon">📄</div><p>No AMC contracts assigned to you.</p></td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filteredAMC.map(contract => {
                 const currentDate = new Date();
                 const endDate = new Date(contract.endDate);
                 const daysUntilExpiry = Math.ceil((endDate - currentDate) / (1000 * 60 * 60 * 24));
@@ -8052,10 +8108,36 @@
                         </td>
                         <td>
                             <div class="action-buttons">
-                                <button class="btn btn-secondary btn-sm" onclick="editAMC('${contract.id}')">Edit</button>
-                                <button class="btn btn-primary btn-sm" onclick="managePayments('${contract.id}')">Payments</button>
-                                <button class="btn btn-success btn-sm" onclick="sendAMCEmail('${contract.id}')" title="Send AMC PDF via Email">📧 Send</button>
-                                ${currentUser.role === 'admin' ? `<button class="btn btn-danger btn-sm" onclick="deleteAMC('${contract.id}')">Delete</button>` : ''}
+                                ${(() => {
+                                    const userRole = currentUser.role.toLowerCase();
+                                    const isAssignedToMe = contract.assignedTo === currentUser.username;
+                                    const isAdmin = userRole === 'admin';
+                                    const isTechnician = userRole === 'technician';
+                                    const isReception = userRole === 'reception';
+
+                                    let buttons = '';
+
+                                    // Edit button (Admin, Reception, Sales - but not Technician)
+                                    if (!isTechnician || isAdmin) {
+                                        const buttonText = isTechnician ? 'View' : 'Edit';
+                                        buttons += `<button class="btn btn-secondary btn-sm" onclick="editAMC('${contract.id}')">${buttonText}</button>`;
+                                    }
+
+                                    // Payments button (Admin, Reception - but not Technician)
+                                    if (!isTechnician || isAdmin) {
+                                        buttons += `<button class="btn btn-primary btn-sm" onclick="managePayments('${contract.id}')">Payments</button>`;
+                                    }
+
+                                    // Send email button (everyone can send)
+                                    buttons += `<button class="btn btn-success btn-sm" onclick="sendAMCEmail('${contract.id}')" title="Send AMC PDF via Email">📧 Send</button>`;
+
+                                    // Delete button (admin only)
+                                    if (isAdmin) {
+                                        buttons += `<button class="btn btn-danger btn-sm" onclick="deleteAMC('${contract.id}')">Delete</button>`;
+                                    }
+
+                                    return buttons;
+                                })()}
                             </div>
                         </td>
                     </tr>
