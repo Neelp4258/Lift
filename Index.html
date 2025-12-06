@@ -16007,17 +16007,36 @@
         function renderLeads() {
             const tbody = document.getElementById('leadsList');
             if (!tbody) return;
-            
+
             if (leads.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="10" class="empty-state"><div class="empty-state-icon">🎯</div><p>No leads yet. Click "Add Lead" to get started.</p></td></tr>';
                 return;
             }
 
-            tbody.innerHTML = leads.map(lead => {
+            // Filter leads based on role
+            const userRole = (currentUser.role || '').toLowerCase();
+            let filteredLeads = leads;
+
+            // Sales people only see their assigned leads
+            if (userRole === 'sales') {
+                filteredLeads = leads.filter(l => l.assignedTo === currentUser.username);
+            }
+
+            if (filteredLeads.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" class="empty-state"><div class="empty-state-icon">🎯</div><p>No leads assigned to you yet.</p></td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filteredLeads.map(lead => {
                 const statusClass = getStatusClass(lead.status);
                 const priorityClass = getPriorityClass(lead.priority);
                 const isOverdue = isLeadOverdue(lead);
-                
+
+                // Check if user can edit this lead
+                const canEdit = userRole === 'admin' ||
+                               (userRole === 'sales' && lead.assignedTo === currentUser.username) ||
+                               (userRole !== 'sales' && userRole !== 'technician');
+
                 return `
                     <tr data-status="${lead.status}" data-priority="${lead.priority}" data-assigned="${lead.assignedTo}">
                         <td>
@@ -16057,7 +16076,7 @@
                         <td>
                             <div class="action-buttons">
                                 <button class="btn btn-primary btn-sm" onclick="viewLeadDetails('${lead.id}')">View</button>
-                                <button class="btn btn-secondary btn-sm" onclick="editLead('${lead.id}')">Edit</button>
+                                ${canEdit ? `<button class="btn btn-secondary btn-sm" onclick="editLead('${lead.id}')">Edit</button>` : ''}
                                 ${canDeleteLead(lead) ? `<button class="btn btn-danger btn-sm" onclick="deleteLead('${lead.id}')">Delete</button>` : ''}
                             </div>
                         </td>
@@ -18706,21 +18725,26 @@
         window.managePayments = async (contractId) => {
             const contract = amc.find(c => c.id === contractId);
             if (!contract) return;
-            
+
+            // Get client name from project data
+            const project = projects.find(p => p.id === contract.projectId);
+            const clientName = project?.clientName || project?.name || contract.projectName || 'N/A';
+            const contractNumber = contract.contractNumber || `AMC-${contract.id.substring(0, 8).toUpperCase()}`;
+
             // Create payment management modal
             const existingModal = document.getElementById('paymentManagementModal');
             if (existingModal) existingModal.remove();
-            
+
             const modal = document.createElement('div');
             modal.id = 'paymentManagementModal';
             modal.className = 'modal active';
             modal.style.zIndex = '10002';
-            
+
             // Get payment history from contract
             const paymentHistory = contract.paymentHistory || [];
             const totalPaid = paymentHistory.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
             const balance = parseFloat(contract.amount || 0) - totalPaid;
-            
+
             modal.innerHTML = `
                 <div class="modal-content" style="max-width: 900px;">
                     <div class="modal-header">
@@ -18728,17 +18752,17 @@
                         <button class="modal-close" onclick="document.getElementById('paymentManagementModal').remove()">&times;</button>
                     </div>
                     <div class="modal-body" style="max-height: 600px; overflow-y: auto;">
-                        
+
                         <!-- Contract Summary -->
                         <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
                                 <div>
                                     <div style="color: #64748b; font-size: 12px; margin-bottom: 4px;">Contract Number</div>
-                                    <div style="font-weight: 600; font-size: 14px;">${contract.contractNumber || 'N/A'}</div>
+                                    <div style="font-weight: 600; font-size: 14px;">${contractNumber}</div>
                                 </div>
                                 <div>
                                     <div style="color: #64748b; font-size: 12px; margin-bottom: 4px;">Client Name</div>
-                                    <div style="font-weight: 600; font-size: 14px;">${contract.clientName}</div>
+                                    <div style="font-weight: 600; font-size: 14px;">${clientName}</div>
                                 </div>
                                 <div>
                                     <div style="color: #64748b; font-size: 12px; margin-bottom: 4px;">Total Contract Value</div>
@@ -18760,7 +18784,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Add New Payment -->
                         <div style="background: white; border: 2px solid #e2e8f0; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                             <h4 style="margin-bottom: 15px; color: #2563eb;">➕ Add New Payment</h4>
@@ -18796,7 +18820,7 @@
                                 💾 Record Payment
                             </button>
                         </div>
-                        
+
                         <!-- Payment History -->
                         <div>
                             <h4 style="margin-bottom: 15px;">📋 Payment History</h4>
