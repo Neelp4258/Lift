@@ -6597,6 +6597,11 @@
             }
         }
 
+        // Helper function to check if current user is admin
+        function isAdmin() {
+            return currentUser && (currentUser.role === 'admin' || currentUser.role === 'Admin');
+        }
+
         window.logout = () => {
             if (confirm('Are you sure you want to logout?')) {
                 clearSession();
@@ -7643,7 +7648,7 @@
                                          <button class="btn btn-success btn-sm" onclick="sendMaintenanceEmail('${maint.id}')" title="Send Completion Certificate via Email">📧 Send</button>` : 
                                         '')
                                 }
-                                ${(currentUser.systemRole === 'admin' || currentUser.role === 'admin') ? `<button class="btn btn-danger btn-sm" onclick="deleteMaintenance('${maint.id}')">Delete</button>` : ''}
+                                ${(currentUser.role === 'admin' || currentUser.role === 'Admin') ? `<button class="btn btn-danger btn-sm" onclick="deleteMaintenance('${maint.id}')">Delete</button>` : ''}
                             </div>
                         </td>
                     </tr>
@@ -8174,6 +8179,10 @@
         };
 
         window.deleteInvoice = async (invoiceId) => {
+            if (!isAdmin()) {
+                alert('Only administrators can delete invoices.');
+                return;
+            }
             if (confirm('Are you sure you want to delete this invoice?')) {
                 try {
                     await deleteDoc(doc(db, 'invoices', invoiceId));
@@ -8253,6 +8262,10 @@
         };
 
         window.deleteInventory = async (id) => {
+            if (!isAdmin()) {
+                alert('Only administrators can delete inventory items.');
+                return;
+            }
             if (!confirm('Are you sure you want to delete this item?')) return;
             
             const allItems = getAllItems();
@@ -8758,6 +8771,10 @@
         });
 
         window.deleteProject = async (id) => {
+            if (!isAdmin()) {
+                alert('Only administrators can delete projects.');
+                return;
+            }
             if (!confirm('Are you sure you want to delete this project? Items will be returned to inventory.')) return;
             
             const project = projects.find(p => p.id === id);
@@ -9957,6 +9974,10 @@
         };
 
         window.deleteMaintenance = async (id) => {
+            if (!isAdmin()) {
+                alert('Only administrators can delete maintenance records.');
+                return;
+            }
             if (!confirm('Are you sure you want to delete this maintenance record?')) return;
             
             const maint = maintenance.find(m => m.id === id);
@@ -10105,6 +10126,10 @@
         // ==================== END HR MANAGEMENT FUNCTIONS ====================
 
         window.deleteEmployee = async (id) => {
+            if (!isAdmin()) {
+                alert('Only administrators can delete employees.');
+                return;
+            }
             const employee = employees.find(emp => emp.id === id);
             if (!employee) {
                 alert('Employee not found!');
@@ -11951,6 +11976,10 @@
 
         // Delete salary slip
         window.deleteSalarySlip = async (slipId) => {
+            if (!isAdmin()) {
+                alert('Only administrators can delete salary slips.');
+                return;
+            }
             const slip = salarySlips.find(s => s.id === slipId);
             if (!slip) {
                 alert('Salary slip not found!');
@@ -12451,6 +12480,10 @@
         };
         
         window.deleteQuotation = async (id) => {
+            if (!isAdmin()) {
+                alert('Only administrators can delete quotations.');
+                return;
+            }
             if (!confirm('Are you sure you want to delete this quotation?')) return;
             
             try {
@@ -15689,8 +15722,9 @@
         }
 
         function canDeleteLead(lead) {
-            return currentUser.role === 'admin' || 
-                   (currentUser.role === 'sales' && lead.assignedTo === currentUser.username);
+            const userRole = (currentUser.role || '').toLowerCase();
+            return userRole === 'admin' ||
+                   (userRole === 'sales' && lead.assignedTo === currentUser.username);
         }
 
         function updateLeadStats() {
@@ -17889,6 +17923,10 @@
         };
 
         window.deleteAMC = async (id) => {
+            if (!isAdmin()) {
+                alert('Only administrators can delete AMC contracts.');
+                return;
+            }
             if (!confirm('Are you sure you want to delete this AMC contract?')) return;
             
             try {
@@ -21582,7 +21620,7 @@ Note: In production, this would send via your configured SMTP server.`);
                 await loadCompanySettings();
                 await loadEmailConfig();
                 // Show settings tab button for admin
-                if (currentUser && currentUser.role === 'Admin') {
+                if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'Admin')) {
                     document.getElementById('settingsTabBtn').style.display = 'block';
                 }
             } else if (tab === 'tracking') {
@@ -21947,6 +21985,10 @@ Note: In production, this would send via your configured SMTP server.`);
 
         // Delete Material
         window.deleteMaterial = async (id) => {
+            if (!isAdmin()) {
+                alert('Only administrators can delete materials.');
+                return;
+            }
             if (!confirm('Are you sure you want to delete this material?')) return;
 
             try {
@@ -22479,6 +22521,10 @@ Note: In production, this would send via your configured SMTP server.`);
 
         // Delete BOM
         window.deleteBOM = async (id) => {
+            if (!isAdmin()) {
+                alert('Only administrators can delete BOMs.');
+                return;
+            }
             if (!confirm('Are you sure you want to delete this BOM? This action cannot be undone.')) return;
 
             try {
