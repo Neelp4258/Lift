@@ -6539,13 +6539,18 @@
             document.getElementById('mainApp').classList.add('active');
             document.getElementById('userName').textContent = currentUser.fullName || currentUser.username;
             document.getElementById('userRole').textContent = currentUser.role.toUpperCase();
-            
+
             // Apply translations
             applyTranslationsOnLogin();
-            
-            // Role-based access control
-            const userRole = currentUser.role;
-            
+
+            // Role-based access control with comprehensive tab visibility
+            const userRole = currentUser.role.toLowerCase();
+
+            // First, show all tab buttons by default (we'll hide specific ones per role)
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.style.display = 'block';
+            });
+
             // Admin - Full access to everything
             if (userRole === 'admin') {
                 document.getElementById('usersTabBtn').style.display = 'block';
@@ -6553,43 +6558,90 @@
                 document.getElementById('billingTabBtn').style.display = 'block';
                 document.getElementById('settingsTabBtn').style.display = 'block';
                 document.getElementById('createTaskBtn')?.style && (document.getElementById('createTaskBtn').style.display = 'block');
+                // Admin sees everything - no tabs to hide
             }
-            
-            // Sales Representative - Access to sales, projects, maintenance, activities, billing
+
+            // Technician - Only AMC, Maintenance, Tracking, Inventory (Warehouse, Service Van, Office)
+            else if (userRole === 'technician') {
+                // Hide these tabs for technicians
+                hideTabsForRole([
+                    'projects',      // Don't need to see all projects
+                    'tasks',         // Don't need task management
+                    'billing',       // No billing access
+                    'sales',         // No sales access
+                    'activities',    // No activities access
+                    'hr',            // No HR access
+                    'bom',           // No BOM access
+                    'settings'       // No settings access
+                ]);
+
+                // Keep visible: dashboard, warehouse, service-van, office, amc, maintenance, tracking
+                document.getElementById('usersTabBtn').style.display = 'none';
+                document.getElementById('salesTabBtn').style.display = 'none';
+                document.getElementById('billingTabBtn').style.display = 'none';
+                document.getElementById('settingsTabBtn').style.display = 'none';
+                document.getElementById('createTaskBtn')?.style && (document.getElementById('createTaskBtn').style.display = 'none');
+            }
+
+            // Reception - Projects, AMC, Maintenance, HR, Settings, Tasks, Billing, Warehouse, Office
+            else if (userRole === 'reception') {
+                // Hide these tabs for reception
+                hideTabsForRole([
+                    'service-van',   // Don't manage service vans
+                    'tracking',      // Don't need tracking
+                    'sales',         // No sales access
+                    'activities',    // No activities access
+                    'bom'            // No BOM access
+                ]);
+
+                // Show HR, Settings, and Billing for reception
+                document.getElementById('usersTabBtn').style.display = 'block';  // HR access
+                document.getElementById('salesTabBtn').style.display = 'none';
+                document.getElementById('billingTabBtn').style.display = 'block';
+                document.getElementById('settingsTabBtn').style.display = 'block';  // Settings access
+                document.getElementById('createTaskBtn')?.style && (document.getElementById('createTaskBtn').style.display = 'block');
+            }
+
+            // Sales Representative - Dashboard, Projects, Sales, Billing, Activities, Maintenance, AMC
             else if (userRole === 'sales') {
+                // Hide these tabs for sales
+                hideTabsForRole([
+                    'warehouse',     // No inventory access
+                    'service-van',   // No service van access
+                    'office',        // No office inventory access
+                    'tracking',      // No tracking access
+                    'tasks',         // No task management
+                    'hr',            // No HR access
+                    'bom',           // No BOM access
+                    'settings'       // No settings access
+                ]);
+
                 document.getElementById('usersTabBtn').style.display = 'none';
                 document.getElementById('salesTabBtn').style.display = 'block';
                 document.getElementById('billingTabBtn').style.display = 'block';
+                document.getElementById('settingsTabBtn').style.display = 'none';
                 document.getElementById('createTaskBtn')?.style && (document.getElementById('createTaskBtn').style.display = 'none');
-                // Hide sensitive inventory locations from sales
-                hideTabsForRole(['hr']);
             }
-            
-            // Technician - Access to maintenance, inventory, projects, activities 
-            else if (userRole === 'technician') {
-                document.getElementById('usersTabBtn').style.display = 'none';
-                document.getElementById('salesTabBtn').style.display = 'none';
-                document.getElementById('billingTabBtn').style.display = 'none';
-                document.getElementById('createTaskBtn')?.style && (document.getElementById('createTaskBtn').style.display = 'none');
-                hideTabsForRole(['hr', 'sales', 'billing']);
-            }
-            
-            // Reception - Access to projects, maintenance, basic inventory, activities, billing
-            else if (userRole === 'reception') {
-                document.getElementById('usersTabBtn').style.display = 'none';
-                document.getElementById('salesTabBtn').style.display = 'none';
-                document.getElementById('billingTabBtn').style.display = 'block';
-                document.getElementById('createTaskBtn')?.style && (document.getElementById('createTaskBtn').style.display = 'none');
-                hideTabsForRole(['hr', 'sales']);
-            }
-            
-            // General User - Limited access
+
+            // General User - Minimal access
             else {
+                hideTabsForRole([
+                    'projects',
+                    'tasks',
+                    'billing',
+                    'sales',
+                    'activities',
+                    'hr',
+                    'bom',
+                    'settings',
+                    'tracking'
+                ]);
+
                 document.getElementById('usersTabBtn').style.display = 'none';
                 document.getElementById('salesTabBtn').style.display = 'none';
                 document.getElementById('billingTabBtn').style.display = 'none';
+                document.getElementById('settingsTabBtn').style.display = 'none';
                 document.getElementById('createTaskBtn')?.style && (document.getElementById('createTaskBtn').style.display = 'none');
-                hideTabsForRole(['hr', 'sales', 'billing']);
             }
 
             if (!isOnline) {
@@ -6654,12 +6706,15 @@
                 });
                 
                 updateDashboard();
-                
+
+                // Customize dashboard based on user role
+                customizeDashboardForRole();
+
                 // Delay chart rendering to ensure Chart.js is fully loaded
                 setTimeout(() => {
                     renderCharts();
                 }, 500);
-                
+
                 checkLowStock();
                 populateCategoryFilters();
                 populateActivityUserFilter();
@@ -7219,6 +7274,241 @@
             safeSetText('pendingInvoicesCount', pendingInvoicesCount);
             safeSetText('paidInvoices', paidInvoicesCount);
             safeSetText('outstandingAmount', '₹' + outstandingAmount.toLocaleString('en-IN'));
+        }
+
+        // Customize dashboard display based on user role
+        function customizeDashboardForRole() {
+            if (!currentUser) return;
+
+            const userRole = currentUser.role.toLowerCase();
+            const dashboardTab = document.getElementById('dashboardTab');
+            if (!dashboardTab) return;
+
+            // Get the main dashboard title and analytics sections
+            const dashboardTitle = dashboardTab.querySelector('h2');
+            const dashboardDescription = dashboardTab.querySelector('p');
+            const statsGrid = dashboardTab.querySelector('.stats-grid');
+            const analyticsGrid = statsGrid?.nextElementSibling;
+
+            // Technician Dashboard - Only show assigned tasks
+            if (userRole === 'technician') {
+                // Change dashboard title
+                if (dashboardTitle) dashboardTitle.textContent = '📋 My Assigned Work';
+                if (dashboardDescription) dashboardDescription.textContent = 'Your pending maintenance and AMC tasks';
+
+                // Hide the full analytics dashboard
+                if (statsGrid) statsGrid.style.display = 'none';
+                if (analyticsGrid) analyticsGrid.style.display = 'none';
+
+                // Create technician-specific dashboard
+                renderTechnicianDashboard();
+            }
+            // Reception Dashboard - Show reception-relevant metrics
+            else if (userRole === 'reception') {
+                // Change dashboard title
+                if (dashboardTitle) dashboardTitle.textContent = '🏢 Reception Dashboard';
+                if (dashboardDescription) dashboardDescription.textContent = 'Manage projects, tasks, HR, and billing operations';
+
+                // Hide some analytics cards (keep stats grid visible)
+                renderReceptionDashboard();
+            }
+            // Sales Dashboard - Show sales-focused metrics
+            else if (userRole === 'sales') {
+                // Change dashboard title
+                if (dashboardTitle) dashboardTitle.textContent = '💼 Sales Dashboard';
+                if (dashboardDescription) dashboardDescription.textContent = 'Track your sales performance, leads, and revenue';
+
+                // Hide inventory and HR cards
+                renderSalesDashboard();
+            }
+            // Admin keeps the full Business Intelligence Dashboard
+            else if (userRole === 'admin') {
+                // Keep everything visible
+                if (statsGrid) statsGrid.style.display = '';
+                if (analyticsGrid) analyticsGrid.style.display = '';
+            }
+        }
+
+        // Render simplified dashboard for technicians showing only their tasks
+        function renderTechnicianDashboard() {
+            const dashboardTab = document.getElementById('dashboardTab');
+            const lowStockAlerts = document.getElementById('lowStockAlerts');
+
+            // Find or create technician dashboard container
+            let techDashboard = document.getElementById('technicianDashboard');
+            if (!techDashboard) {
+                techDashboard = document.createElement('div');
+                techDashboard.id = 'technicianDashboard';
+                if (lowStockAlerts && lowStockAlerts.nextSibling) {
+                    dashboardTab.insertBefore(techDashboard, lowStockAlerts.nextSibling);
+                }
+            }
+
+            // Get technician's assigned tasks
+            const myMaintenanceTasks = maintenance ? maintenance.filter(m =>
+                m.assignedTo === currentUser.username &&
+                (m.status === 'Scheduled' || m.status === 'In Progress')
+            ) : [];
+
+            const myAMCTasks = amc ? amc.filter(a =>
+                a.assignedTo === currentUser.username &&
+                a.status === 'Active'
+            ) : [];
+
+            techDashboard.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 24px;">
+                    <!-- My Maintenance Tasks -->
+                    <div class="card" style="border-left: 4px solid #ef4444;">
+                        <h3 class="card-title">🔧 My Maintenance Tasks</h3>
+                        <div style="margin-top: 16px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                                <span>Pending:</span>
+                                <strong style="color: var(--warning);">${myMaintenanceTasks.filter(m => m.status === 'Scheduled').length}</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>In Progress:</span>
+                                <strong style="color: var(--primary);">${myMaintenanceTasks.filter(m => m.status === 'In Progress').length}</strong>
+                            </div>
+                        </div>
+                        ${myMaintenanceTasks.length > 0 ? `
+                            <div style="margin-top: 16px; max-height: 300px; overflow-y: auto;">
+                                <h4 style="font-size: 14px; margin-bottom: 8px; color: var(--text-secondary);">Recent Tasks:</h4>
+                                ${myMaintenanceTasks.slice(0, 5).map(task => `
+                                    <div style="padding: 8px; background: var(--bg-light); border-radius: 6px; margin-bottom: 8px;">
+                                        <div style="font-weight: 500; font-size: 14px;">${task.clientName || 'N/A'}</div>
+                                        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+                                            ${task.location || 'N/A'} • ${task.status}
+                                        </div>
+                                        ${task.dueDate ? `<div style="font-size: 12px; color: var(--warning); margin-top: 4px;">Due: ${task.dueDate}</div>` : ''}
+                                    </div>
+                                `).join('')}
+                                ${myMaintenanceTasks.length > 5 ? `<div style="text-align: center; margin-top: 8px; color: var(--text-secondary); font-size: 12px;">... and ${myMaintenanceTasks.length - 5} more</div>` : ''}
+                            </div>
+                        ` : '<p style="margin-top: 16px; color: var(--text-secondary); text-align: center;">No pending tasks</p>'}
+                        <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="showTab('maintenance')">View All Maintenance</button>
+                    </div>
+
+                    <!-- My AMC Contracts -->
+                    <div class="card" style="border-left: 4px solid #8b5cf6;">
+                        <h3 class="card-title">📝 My AMC Contracts</h3>
+                        <div style="margin-top: 16px;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>Active Contracts:</span>
+                                <strong style="color: var(--primary);">${myAMCTasks.length}</strong>
+                            </div>
+                        </div>
+                        ${myAMCTasks.length > 0 ? `
+                            <div style="margin-top: 16px; max-height: 300px; overflow-y: auto;">
+                                <h4 style="font-size: 14px; margin-bottom: 8px; color: var(--text-secondary);">My Contracts:</h4>
+                                ${myAMCTasks.slice(0, 5).map(contract => `
+                                    <div style="padding: 8px; background: var(--bg-light); border-radius: 6px; margin-bottom: 8px;">
+                                        <div style="font-weight: 500; font-size: 14px;">${contract.clientName || 'N/A'}</div>
+                                        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+                                            ${contract.location || 'N/A'}
+                                        </div>
+                                        ${contract.endDate ? `<div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Ends: ${contract.endDate}</div>` : ''}
+                                    </div>
+                                `).join('')}
+                                ${myAMCTasks.length > 5 ? `<div style="text-align: center; margin-top: 8px; color: var(--text-secondary); font-size: 12px;">... and ${myAMCTasks.length - 5} more</div>` : ''}
+                            </div>
+                        ` : '<p style="margin-top: 16px; color: var(--text-secondary); text-align: center;">No active contracts</p>'}
+                        <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="showTab('amc')">View All AMCs</button>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="card" style="border-left: 4px solid #10b981;">
+                        <h3 class="card-title">📊 My Stats</h3>
+                        <div style="margin-top: 16px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                                <span>Completed This Month:</span>
+                                <strong style="color: var(--success);">${maintenance ? maintenance.filter(m =>
+                                    m.assignedTo === currentUser.username &&
+                                    m.status === 'Completed' &&
+                                    new Date(m.completionTime).getMonth() === new Date().getMonth()
+                                ).length : 0}</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                                <span>Total Pending:</span>
+                                <strong style="color: var(--warning);">${myMaintenanceTasks.length}</strong>
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary" style="width: 100%; margin-top: 16px;" onclick="showTab('tracking')">📍 Update My Location</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Render dashboard for reception staff
+        function renderReceptionDashboard() {
+            const dashboardTab = document.getElementById('dashboardTab');
+            const statsGrid = dashboardTab?.querySelector('.stats-grid');
+            const analyticsGrid = statsGrid?.nextElementSibling;
+
+            // Hide analytics cards that reception doesn't need
+            if (analyticsGrid) {
+                const cards = analyticsGrid.querySelectorAll('.card');
+                cards.forEach((card, index) => {
+                    const title = card.querySelector('.card-title')?.textContent || '';
+                    // Hide: Lead Analytics, Inventory Analytics (show projects, AMC, maintenance, HR, billing)
+                    if (title.includes('Lead Analytics') ||
+                        title.includes('Inventory Analytics') ||
+                        title.includes('Sales Analytics')) {
+                        card.style.display = 'none';
+                    } else {
+                        card.style.display = '';
+                    }
+                });
+            }
+
+            // Hide some stat cards
+            if (statsGrid) {
+                const statCards = statsGrid.querySelectorAll('.stat-card');
+                statCards.forEach(card => {
+                    const label = card.querySelector('.stat-label')?.textContent || '';
+                    // Hide inventory and leads
+                    if (label.includes('Total Leads') || label.includes('Inventory Items')) {
+                        card.style.display = 'none';
+                    } else {
+                        card.style.display = '';
+                    }
+                });
+            }
+        }
+
+        // Render dashboard for sales staff
+        function renderSalesDashboard() {
+            const dashboardTab = document.getElementById('dashboardTab');
+            const statsGrid = dashboardTab?.querySelector('.stats-grid');
+            const analyticsGrid = statsGrid?.nextElementSibling;
+
+            // Hide analytics cards that sales doesn't need
+            if (analyticsGrid) {
+                const cards = analyticsGrid.querySelectorAll('.card');
+                cards.forEach(card => {
+                    const title = card.querySelector('.card-title')?.textContent || '';
+                    // Show only: Sales, Projects, Leads, AMC, Maintenance, Billing
+                    // Hide: HR, Inventory
+                    if (title.includes('HR Analytics') || title.includes('Inventory Analytics')) {
+                        card.style.display = 'none';
+                    } else {
+                        card.style.display = '';
+                    }
+                });
+            }
+
+            // Hide some stat cards
+            if (statsGrid) {
+                const statCards = statsGrid.querySelectorAll('.stat-card');
+                statCards.forEach(card => {
+                    const label = card.querySelector('.stat-label')?.textContent || '';
+                    // Hide HR and Inventory
+                    if (label.includes('Total Employees') || label.includes('Inventory Items')) {
+                        card.style.display = 'none';
+                    } else {
+                        card.style.display = '';
+                    }
+                });
+            }
         }
 
         function checkLowStock() {
@@ -21614,9 +21904,12 @@ Note: In production, this would send via your configured SMTP server.`);
         window.showTab = async (tab) => {
             // Call original showTab for all tabs (including tracking)
             originalShowTab(tab);
-            
+
             // Load specific content based on tab
-            if (tab === 'settings') {
+            if (tab === 'dashboard') {
+                // Customize dashboard based on user role
+                customizeDashboardForRole();
+            } else if (tab === 'settings') {
                 await loadCompanySettings();
                 await loadEmailConfig();
                 // Show settings tab button for admin
